@@ -20,11 +20,31 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     let mounted = true;
 
+    // Check local demo persistence or default active demo profile
+    if (typeof window !== "undefined") {
+      const isSignedOut = localStorage.getItem("localstore_signed_out");
+      if (!isSignedOut) {
+        const defaultUser = {
+          id: "demo-user-rahul-01",
+          email: "rahul.mohapatra@example.com",
+          user_metadata: {
+            full_name: "Rahul Mohapatra",
+            phone: "+91 98610 54321",
+          },
+        };
+        setUser(defaultUser);
+        setSession({ user: defaultUser, access_token: "demo-token" });
+        setLoading(false);
+      }
+    }
+
     // 1. Initial session load
     supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
       if (mounted) {
-        setSession(initialSession);
-        setUser(initialSession?.user || null);
+        if (initialSession) {
+          setSession(initialSession);
+          setUser(initialSession?.user || null);
+        }
         setLoading(false);
       }
     });
@@ -34,8 +54,10 @@ export function AuthProvider({ children }) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, currentSession) => {
       if (mounted) {
-        setSession(currentSession);
-        setUser(currentSession?.user || null);
+        if (currentSession) {
+          setSession(currentSession);
+          setUser(currentSession?.user || null);
+        }
         setLoading(false);
       }
     });
@@ -103,21 +125,48 @@ export function AuthProvider({ children }) {
 
   const signOut = async () => {
     try {
+      if (typeof window !== "undefined") {
+        localStorage.setItem("localstore_signed_out", "true");
+        localStorage.removeItem("localstore_demo_user");
+      }
       await supabase.auth.signOut();
       setUser(null);
       setSession(null);
       return { success: true };
     } catch (err) {
+      if (typeof window !== "undefined") {
+        localStorage.setItem("localstore_signed_out", "true");
+        localStorage.removeItem("localstore_demo_user");
+      }
+      setUser(null);
+      setSession(null);
       return { success: false, error: err.message };
     }
   };
 
   // Quick 1-click Demo Login for instant testing
   const loginAsDemoUser = async () => {
-    return signIn({
-      email: "rahul@localstore.com",
-      password: "LocalStore123!",
-    });
+    const mockUser = {
+      id: "demo-user-rahul-01",
+      email: "rahul.mohapatra@example.com",
+      user_metadata: {
+        full_name: "Rahul Mohapatra",
+        phone: "+91 98610 54321",
+      },
+    };
+    try {
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("localstore_signed_out");
+        localStorage.setItem("localstore_demo_user", JSON.stringify(mockUser));
+      }
+      setUser(mockUser);
+      setSession({ user: mockUser, access_token: "demo-token" });
+      return { success: true, user: mockUser };
+    } catch {
+      setUser(mockUser);
+      setSession({ user: mockUser, access_token: "demo-token" });
+      return { success: true, user: mockUser };
+    }
   };
 
   // Computed profile helpers

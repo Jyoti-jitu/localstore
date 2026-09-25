@@ -112,7 +112,7 @@ export default function Footer() {
           <div className="flex items-center gap-4">
             <NextLink href="/help" className="hover:text-neutral-600">Privacy Policy</NextLink>
             <NextLink href="/help" className="hover:text-neutral-600">Terms of Service</NextLink>
-            <NextLink href="/help" className="hover:text-neutral-600">Merchant Partner Program</NextLink>
+            <NextLink href="/shopkeeper" className="text-emerald-700 font-bold hover:underline">Become a Shopkeeper</NextLink>
           </div>
         </div>
       </div>

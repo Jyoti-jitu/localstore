@@ -15,7 +15,8 @@ import {
   User,
   PackageCheck,
   ChevronDown,
-  LogIn
+  LogIn,
+  Store
 } from "lucide-react";
 
 export default function Navbar() {
@@ -136,6 +137,15 @@ export default function Navbar() {
                   {activeOrdersCount}
                 </span>
               )}
+            </NextLink>
+
+            {/* Desktop Become a Shopkeeper */}
+            <NextLink
+              href="/shopkeeper"
+              className="hidden xl:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100/80 border border-emerald-200/80 transition-all shadow-2xs"
+            >
+              <Store className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Become a Shopkeeper</span>
             </NextLink>
 
             {/* Desktop Account / Sign In */}
