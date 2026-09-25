@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import NextLink from "next/link";
 import { useLocation } from "@/context/LocationContext";
 import { useOrders } from "@/context/OrdersContext";
 import { useFavorites } from "@/context/FavoritesContext";
 import { useToast } from "@/context/ToastContext";
 import { useAuth } from "@/context/AuthContext";
+import Modal from "@/components/Modal";
 import {
   User,
   PackageCheck,
@@ -18,6 +19,12 @@ import {
   Shield,
   LogOut,
   ChevronRight,
+  ChevronLeft,
+  Camera,
+  Upload,
+  Trash2,
+  Check,
+  Lock,
   Edit2,
   Phone,
   Mail,
@@ -26,6 +33,15 @@ import {
   Sparkles,
   LogIn
 } from "lucide-react";
+
+const AVATAR_PRESETS = [
+  "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=240&auto=format&fit=crop&q=80",
+  "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=240&auto=format&fit=crop&q=80",
+  "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=240&auto=format&fit=crop&q=80",
+  "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=240&auto=format&fit=crop&q=80",
+  "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=240&auto=format&fit=crop&q=80",
+  "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=240&auto=format&fit=crop&q=80"
+];
 
 export default function AccountPage() {
   const { currentLocality, city, openModal } = useLocation();
@@ -39,10 +55,38 @@ export default function AccountPage() {
     loading: authLoading,
     signOut,
     openAuthModal,
-    loginAsDemoUser
+    loginAsDemoUser,
+    updateProfilePhoto,
+    removeProfilePhoto
   } = useAuth();
 
   const [activeTab, setActiveTab] = useState("profile"); // 'profile' | 'payments'
+  const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
+  const fileInputRef = useRef(null);
+
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      showToast("Please choose an image file (PNG, JPG, WEBP).");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      showToast("Image size must be under 5MB.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result;
+      updateProfilePhoto(dataUrl);
+      setIsPhotoModalOpen(false);
+      showToast("Profile photo updated successfully!");
+    };
+    reader.readAsDataURL(file);
+  };
 
   const user = {
     name: profile?.name || "Rahul Mohapatra",
@@ -143,12 +187,48 @@ export default function AccountPage() {
   return (
     <div className="min-h-screen bg-[#fbfbfb] py-3 sm:py-8 pb-20 md:pb-8">
       <div className="max-w-5xl mx-auto px-3.5 sm:px-6 lg:px-8 space-y-3.5 sm:space-y-6">
+        {/* Top Back Navigation */}
+        <div className="flex items-center justify-between">
+          <NextLink
+            href="/"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-neutral-500 hover:text-neutral-900 transition-colors group"
+          >
+            <ChevronLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
+            <span>Back to Home</span>
+          </NextLink>
+
+          <span className="text-[11px] font-semibold text-neutral-400">
+            Account & Profile
+          </span>
+        </div>
+
         {/* Profile Header */}
         <div className="bg-white rounded-2xl sm:rounded-3xl border border-neutral-200/90 p-4 sm:p-8 shadow-xs">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-left">
             <div className="flex items-center gap-3.5 sm:gap-5">
-              <div className="w-14 h-14 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-2xl bg-emerald-600 text-white font-extrabold text-xl sm:text-2xl flex items-center justify-center shadow-md flex-shrink-0">
-                {profile?.initials || "RM"}
+              {/* Profile Photo / Avatar with Edit Trigger */}
+              <div className="relative group/avatar flex-shrink-0">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-2xl overflow-hidden bg-gradient-to-br from-emerald-600 to-teal-700 text-white font-black text-xl sm:text-2xl flex items-center justify-center shadow-md border-2 border-white ring-2 ring-emerald-100/90">
+                  {profile?.avatar ? (
+                    <img
+                      src={profile.avatar}
+                      alt={user.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span>{profile?.initials || "RM"}</span>
+                  )}
+                </div>
+
+                {/* Edit Photo overlay button */}
+                <button
+                  type="button"
+                  onClick={() => setIsPhotoModalOpen(true)}
+                  className="absolute -bottom-1.5 -right-1.5 p-1.5 sm:p-2 bg-neutral-900 hover:bg-emerald-600 text-white rounded-xl shadow-md border-2 border-white transition-all hover:scale-110 flex items-center justify-center"
+                  title="Add or Change Profile Photo"
+                >
+                  <Camera className="w-3.5 h-3.5" />
+                </button>
               </div>
 
               <div className="space-y-0.5 sm:space-y-1">
@@ -182,6 +262,11 @@ export default function AccountPage() {
                     (Change)
                   </button>
                 </div>
+
+                <div className="pt-1 text-[11px] text-neutral-400 font-medium flex items-center gap-1">
+                  <Lock className="w-3 h-3 text-neutral-400" />
+                  <span>Profile details verified • Only profile photo is editable</span>
+                </div>
               </div>
             </div>
 
@@ -196,12 +281,13 @@ export default function AccountPage() {
               </NextLink>
 
               <button
-                onClick={() => showToast("Profile edit is enabled for phone & email updates.")}
+                type="button"
+                onClick={() => setIsPhotoModalOpen(true)}
                 className="inline-flex items-center gap-1.5 px-3 py-2 sm:px-3.5 sm:py-2.5 border border-neutral-200 hover:bg-neutral-50 rounded-xl text-xs font-semibold text-neutral-800 transition-colors flex-shrink-0"
+                title="Change or upload profile photo"
               >
-                <Edit2 className="w-3.5 h-3.5 text-neutral-400" />
-                <span className="hidden sm:inline">Edit Profile</span>
-                <span className="sm:hidden">Edit</span>
+                <Camera className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Change Photo</span>
               </button>
             </div>
           </div>
@@ -403,6 +489,139 @@ export default function AccountPage() {
           </div>
         </div>
       </div>
+
+      {/* Change Profile Photo Modal */}
+      <Modal
+        isOpen={isPhotoModalOpen}
+        onClose={() => setIsPhotoModalOpen(false)}
+        title="Edit Profile Photo"
+        subtitle="Upload a personal photo or select a verified avatar"
+        maxWidth="max-w-lg"
+      >
+        <div className="space-y-5 py-1">
+          {/* Current Avatar Preview */}
+          <div className="flex flex-col sm:flex-row items-center gap-4 p-4 rounded-2xl bg-neutral-50 border border-neutral-200/90">
+            <div className="w-20 h-20 rounded-2xl overflow-hidden bg-gradient-to-br from-emerald-600 to-teal-700 text-white font-black text-2xl flex items-center justify-center shadow-md flex-shrink-0 border-2 border-white ring-2 ring-emerald-200">
+              {profile?.avatar ? (
+                <img
+                  src={profile.avatar}
+                  alt={user.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span>{profile?.initials || "RM"}</span>
+              )}
+            </div>
+
+            <div className="text-center sm:text-left space-y-1 flex-1">
+              <h4 className="text-sm font-bold text-neutral-900">{user.name}</h4>
+              <p className="text-xs text-neutral-500">
+                {profile?.avatar ? "Custom profile picture is active" : "Using default name initials"}
+              </p>
+              <div className="text-[11px] text-emerald-700 font-semibold flex items-center justify-center sm:justify-start gap-1 pt-0.5">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>JPG, PNG, WEBP up to 5MB supported</span>
+              </div>
+            </div>
+
+            {profile?.avatar && (
+              <button
+                type="button"
+                onClick={() => {
+                  removeProfilePhoto();
+                  showToast("Profile photo removed.");
+                }}
+                className="p-2 px-3 text-rose-600 hover:bg-rose-50 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors border border-rose-200"
+                title="Remove custom photo and reset to initials"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Remove</span>
+              </button>
+            )}
+          </div>
+
+          {/* Option 1: Upload from Device */}
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-neutral-700 uppercase tracking-wider block">
+              Upload from Device
+            </label>
+            <input
+              type="file"
+              ref={fileInputRef}
+              accept="image/*"
+              onChange={handleFileChange}
+              className="hidden"
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="w-full py-3.5 px-4 border-2 border-dashed border-neutral-300 hover:border-emerald-500 hover:bg-emerald-50/50 rounded-2xl flex items-center justify-center gap-2.5 text-xs font-bold text-neutral-700 hover:text-emerald-800 transition-all group"
+            >
+              <Upload className="w-4 h-4 text-emerald-600 group-hover:scale-110 transition-transform" />
+              <span>Choose photo from your computer or phone</span>
+            </button>
+          </div>
+
+          {/* Option 2: Curated Avatar Presets */}
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-neutral-700 uppercase tracking-wider block">
+              Or Choose a Preset Avatar
+            </label>
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2.5">
+              {AVATAR_PRESETS.map((preset, idx) => {
+                const isSelected = profile?.avatar === preset;
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => {
+                      updateProfilePhoto(preset);
+                      showToast("Profile photo updated!");
+                    }}
+                    className={`relative aspect-square rounded-2xl overflow-hidden border-2 transition-all hover:scale-105 ${
+                      isSelected
+                        ? "border-emerald-600 ring-2 ring-emerald-300 shadow-sm"
+                        : "border-neutral-200 hover:border-neutral-400"
+                    }`}
+                  >
+                    <img
+                      src={preset}
+                      alt={`Avatar option ${idx + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                    {isSelected && (
+                      <div className="absolute inset-0 bg-emerald-600/30 flex items-center justify-center">
+                        <div className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center">
+                          <Check className="w-3.5 h-3.5 stroke-[3]" />
+                        </div>
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Account Policy Notice */}
+          <div className="p-3.5 rounded-2xl bg-amber-50/80 border border-amber-200/70 flex items-start gap-2.5 text-amber-900 text-xs">
+            <Lock className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+            <p className="leading-relaxed">
+              <strong>Verified Profile:</strong> Only your profile photo is editable. Full name, registered phone number, and email address are locked for security and neighborhood order verification.
+            </p>
+          </div>
+
+          {/* Modal Actions */}
+          <div className="pt-2 flex justify-end">
+            <button
+              type="button"
+              onClick={() => setIsPhotoModalOpen(false)}
+              className="py-2.5 px-5 bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-bold rounded-xl transition-colors shadow-xs"
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

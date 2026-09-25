@@ -1,12 +1,13 @@
 "use client";
 
 import React, { useState } from "react";
+import NextLink from "next/link";
 import { useFavorites } from "@/context/FavoritesContext";
 import { useShops, useProducts } from "@/hooks/useSupabaseData";
 import StoreCard from "@/components/StoreCard";
 import ProductCard from "@/components/ProductCard";
 import EmptyState from "@/components/EmptyState";
-import { Heart, Store, ShoppingBag } from "lucide-react";
+import { Heart, Store, ShoppingBag, ChevronLeft } from "lucide-react";
 
 export default function FavoritesPage() {
   const { favoriteShopIds, favoriteProductIds } = useFavorites();
@@ -24,8 +25,16 @@ export default function FavoritesPage() {
   return (
     <div className="min-h-screen bg-[#fbfbfb] py-3 sm:py-8 pb-20 md:pb-8">
       <div className="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 space-y-3.5 sm:space-y-6">
-        {/* Header */}
+        {/* Header with Back Button */}
         <div>
+          <NextLink
+            href="/account"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-neutral-500 hover:text-neutral-900 mb-1.5 sm:mb-2 transition-colors group"
+          >
+            <ChevronLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
+            <span>Back to Account</span>
+          </NextLink>
+
           <div className="flex items-center gap-1.5 text-[11px] sm:text-xs font-bold uppercase tracking-wider text-rose-600 mb-0.5 sm:mb-1">
             <Heart className="w-3.5 h-3.5 fill-rose-500" />
             <span>Saved Favorites</span>

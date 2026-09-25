@@ -158,9 +158,17 @@ export default function Navbar() {
                     : "text-neutral-800 hover:bg-neutral-50 border-neutral-200"
                 }`}
               >
-                <div className="w-6 h-6 rounded-full bg-emerald-600 text-white text-[10px] font-black flex items-center justify-center">
-                  {profile.initials}
-                </div>
+                {profile.avatar ? (
+                  <img
+                    src={profile.avatar}
+                    alt={profile.name}
+                    className="w-6 h-6 rounded-full object-cover border border-emerald-400"
+                  />
+                ) : (
+                  <div className="w-6 h-6 rounded-full bg-emerald-600 text-white text-[10px] font-black flex items-center justify-center">
+                    {profile.initials}
+                  </div>
+                )}
                 <span className="max-w-[100px] truncate">{profile.name.split(" ")[0]}</span>
               </NextLink>
             ) : (

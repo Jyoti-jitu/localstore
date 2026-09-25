@@ -169,13 +169,51 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const [customAvatar, setCustomAvatar] = useState(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedAvatar = localStorage.getItem("localstore_user_avatar");
+      if (savedAvatar) setCustomAvatar(savedAvatar);
+    }
+  }, []);
+
+  const updateProfilePhoto = (photoUrl) => {
+    setCustomAvatar(photoUrl);
+    if (typeof window !== "undefined") {
+      if (photoUrl) {
+        localStorage.setItem("localstore_user_avatar", photoUrl);
+      } else {
+        localStorage.removeItem("localstore_user_avatar");
+      }
+    }
+    if (user) {
+      const updatedUser = {
+        ...user,
+        user_metadata: {
+          ...(user.user_metadata || {}),
+          avatar_url: photoUrl || "",
+        },
+      };
+      setUser(updatedUser);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("localstore_demo_user", JSON.stringify(updatedUser));
+      }
+    }
+  };
+
+  const removeProfilePhoto = () => {
+    updateProfilePhoto(null);
+  };
+
   // Computed profile helpers
   const profile = {
     id: user?.id,
     name: user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Shopper",
     email: user?.email || "",
     phone: user?.user_metadata?.phone || "",
-    initials: (user?.user_metadata?.full_name || user?.email || "U")
+    avatar: customAvatar || user?.user_metadata?.avatar_url || "",
+    initials: (user?.user_metadata?.full_name || user?.email || "RM")
       .split(" ")
       .map((n) => n[0])
       .join("")
@@ -195,6 +233,8 @@ export function AuthProvider({ children }) {
         signUp,
         signOut,
         loginAsDemoUser,
+        updateProfilePhoto,
+        removeProfilePhoto,
         isAuthModalOpen,
         authModalMode,
         authRedirectUrl,

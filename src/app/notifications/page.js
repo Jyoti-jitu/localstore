@@ -39,9 +39,9 @@ export default function NotificationsPage() {
         <div>
           <NextLink
             href="/account"
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-neutral-500 hover:text-neutral-900 mb-1 sm:mb-2"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-neutral-500 hover:text-neutral-900 mb-1.5 sm:mb-2 transition-colors group"
           >
-            <ChevronLeft className="w-4 h-4" />
+            <ChevronLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
             <span>Back to Account</span>
           </NextLink>
 

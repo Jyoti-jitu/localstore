@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
+import NextLink from "next/link";
 import { useOrders } from "@/context/OrdersContext";
 import OrderCard from "@/components/OrderCard";
 import EmptyState from "@/components/EmptyState";
-import { PackageCheck, Clock, CheckCircle2, XCircle } from "lucide-react";
+import { PackageCheck, Clock, CheckCircle2, XCircle, ChevronLeft } from "lucide-react";
 
 export default function OrdersPage() {
   const { orders } = useOrders();
@@ -35,8 +36,16 @@ export default function OrdersPage() {
   return (
     <div className="min-h-screen bg-[#fbfbfb] py-3 sm:py-8 pb-20 md:pb-8">
       <div className="max-w-4xl mx-auto px-3 sm:px-6 lg:px-8 space-y-4 sm:space-y-6">
-        {/* Header */}
+        {/* Header with Back Button */}
         <div>
+          <NextLink
+            href="/account"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-neutral-500 hover:text-neutral-900 mb-1.5 sm:mb-2 transition-colors group"
+          >
+            <ChevronLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
+            <span>Back to Account</span>
+          </NextLink>
+
           <div className="flex items-center gap-1.5 text-[11px] sm:text-xs font-bold uppercase tracking-wider text-emerald-700 mb-0.5">
             <PackageCheck className="w-3.5 h-3.5" />
             <span>Order History</span>
