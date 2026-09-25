@@ -1,0 +1,452 @@
+INSERT INTO public.products-- Products
+
+INSERT INTO public.products (
+  id, shop_id, name, brand, quantity, price, original_price, discount_percent,
+  category, store_category, in_stock, rating, reviews_count, popular, image,
+  description, information
+) VALUES (
+  'amul-taaza-1l',
+  'sharma-grocery',
+  'Amul Taaza Homogenised Toned Milk',
+  'Amul',
+  '1 L',
+  62,
+  62,
+  0,
+  'grocery',
+  'Dairy & Bread',
+  true,
+  4.8,
+  142,
+  true,
+  'https://images.unsplash.com/photo-1563636619-e9143da7973b?auto=format&fit=crop&w=600&q=80',
+  'Freshly packed toned milk with 3.0% fat and 8.5% SNF. Excellent for daily tea, coffee, breakfast cereal, and homemade paneer. Delivered in chilled condition.',
+  '{"Type":"Pasteurised & Homogenised Toned Milk","Shelf Life":"2 Days from dispatch","Storage":"Keep refrigerated below 4°C","FSSAI License":"10012021000071"}'::jsonb
+)
+ON CONFLICT (id) DO UPDATE SET
+  shop_id = EXCLUDED.shop_id,
+  name = EXCLUDED.name,
+  brand = EXCLUDED.brand,
+  quantity = EXCLUDED.quantity,
+  price = EXCLUDED.price,
+  original_price = EXCLUDED.original_price,
+  discount_percent = EXCLUDED.discount_percent,
+  category = EXCLUDED.category,
+  store_category = EXCLUDED.store_category,
+  in_stock = EXCLUDED.in_stock,
+  rating = EXCLUDED.rating,
+  reviews_count = EXCLUDED.reviews_count,
+  popular = EXCLUDED.popular,
+  image = EXCLUDED.image,
+  description = EXCLUDED.description,
+  information = EXCLUDED.information;
+
+INSERT INTO public.products (
+  id, shop_id, name, brand, quantity, price, original_price, discount_percent,
+  category, store_category, in_stock, rating, reviews_count, popular, image,
+  description, information
+) VALUES (
+  'amul-butter-500g',
+  'sharma-grocery',
+  'Amul Pasteurised Salted Butter',
+  'Amul',
+  '500 g',
+  275,
+  290,
+  5,
+  'grocery',
+  'Dairy & Bread',
+  true,
+  4.9,
+  88,
+  true,
+  'https://images.unsplash.com/photo-1589985270826-4b7bb135bc9d?auto=format&fit=crop&w=600&q=80',
+  'India''s favorite golden butter made from pure milk fat. Adds rich flavor to warm rotis, toasts, parathas, and baking recipes.',
+  '{"Key Ingredients":"Butter, Common Salt, Permitted Natural Color","Shelf Life":"12 Months","Storage":"Keep under refrigeration"}'::jsonb
+)
+ON CONFLICT (id) DO UPDATE SET
+  shop_id = EXCLUDED.shop_id,
+  name = EXCLUDED.name,
+  brand = EXCLUDED.brand,
+  quantity = EXCLUDED.quantity,
+  price = EXCLUDED.price,
+  original_price = EXCLUDED.original_price,
+  discount_percent = EXCLUDED.discount_percent,
+  category = EXCLUDED.category,
+  store_category = EXCLUDED.store_category,
+  in_stock = EXCLUDED.in_stock,
+  rating = EXCLUDED.rating,
+  reviews_count = EXCLUDED.reviews_count,
+  popular = EXCLUDED.popular,
+  image = EXCLUDED.image,
+  description = EXCLUDED.description,
+  information = EXCLUDED.information;
+
+INSERT INTO public.products (
+  id, shop_id, name, brand, quantity, price, original_price, discount_percent,
+  category, store_category, in_stock, rating, reviews_count, popular, image,
+  description, information
+) VALUES (
+  'aashirvaad-atta-5kg',
+  'sharma-grocery',
+  'Aashirvaad Shudh Whole Wheat Chakki Atta',
+  'Aashirvaad',
+  '5 kg',
+  245,
+  270,
+  9,
+  'grocery',
+  'Grocery',
+  true,
+  4.8,
+  210,
+  true,
+  'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=600&q=80',
+  '100% pure whole wheat ground with modern chakki process to preserve dietary fibers and vital nutrients for soft, fluffy rotis that stay soft longer.',
+  '{"Type":"Whole Wheat Flour","Fiber Content":"High","Origin":"Madhya Pradesh MP Wheat"}'::jsonb
+)
+ON CONFLICT (id) DO UPDATE SET
+  shop_id = EXCLUDED.shop_id,
+  name = EXCLUDED.name,
+  brand = EXCLUDED.brand,
+  quantity = EXCLUDED.quantity,
+  price = EXCLUDED.price,
+  original_price = EXCLUDED.original_price,
+  discount_percent = EXCLUDED.discount_percent,
+  category = EXCLUDED.category,
+  store_category = EXCLUDED.store_category,
+  in_stock = EXCLUDED.in_stock,
+  rating = EXCLUDED.rating,
+  reviews_count = EXCLUDED.reviews_count,
+  popular = EXCLUDED.popular,
+  image = EXCLUDED.image,
+  description = EXCLUDED.description,
+  information = EXCLUDED.information;
+
+INSERT INTO public.products (
+  id, shop_id, name, brand, quantity, price, original_price, discount_percent,
+  category, store_category, in_stock, rating, reviews_count, popular, image,
+  description, information
+) VALUES (
+  'tata-salt-1kg',
+  'sharma-grocery',
+  'Tata Salt Vacuum Evaporated Iodised',
+  'Tata',
+  '1 kg',
+  28,
+  28,
+  0,
+  'grocery',
+  'Grocery',
+  true,
+  4.9,
+  320,
+  false,
+  'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?auto=format&fit=crop&w=600&q=80',
+  'Desh ka Namak. Pure vacuum-evaporated iodised cooking salt essential for balanced nutrition and daily cooking.',
+  '{"Nutrient":"Iodine Enriched","Purity":"99.9% Pure"}'::jsonb
+)
+ON CONFLICT (id) DO UPDATE SET
+  shop_id = EXCLUDED.shop_id,
+  name = EXCLUDED.name,
+  brand = EXCLUDED.brand,
+  quantity = EXCLUDED.quantity,
+  price = EXCLUDED.price,
+  original_price = EXCLUDED.original_price,
+  discount_percent = EXCLUDED.discount_percent,
+  category = EXCLUDED.category,
+  store_category = EXCLUDED.store_category,
+  in_stock = EXCLUDED.in_stock,
+  rating = EXCLUDED.rating,
+  reviews_count = EXCLUDED.reviews_count,
+  popular = EXCLUDED.popular,
+  image = EXCLUDED.image,
+  description = EXCLUDED.description,
+  information = EXCLUDED.information;
+
+INSERT INTO public.products (
+  id, shop_id, name, brand, quantity, price, original_price, discount_percent,
+  category, store_category, in_stock, rating, reviews_count, popular, image,
+  description, information
+) VALUES (
+  'fortune-sunflower-oil-1l',
+  'sharma-grocery',
+  'Fortune Sunlite Refined Sunflower Oil Pouch',
+  'Fortune',
+  '1 L',
+  142,
+  165,
+  14,
+  'grocery',
+  'Grocery',
+  true,
+  4.6,
+  95,
+  true,
+  'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?auto=format&fit=crop&w=600&q=80',
+  'Light, healthy, fortified with Vitamin A & D. Low absorption formula keeps fried snacks crispy without feeling greasy.',
+  '{"Vitamins":"A, D, E","Fat Content":"Zero Cholesterol"}'::jsonb
+)
+ON CONFLICT (id) DO UPDATE SET
+  shop_id = EXCLUDED.shop_id,
+  name = EXCLUDED.name,
+  brand = EXCLUDED.brand,
+  quantity = EXCLUDED.quantity,
+  price = EXCLUDED.price,
+  original_price = EXCLUDED.original_price,
+  discount_percent = EXCLUDED.discount_percent,
+  category = EXCLUDED.category,
+  store_category = EXCLUDED.store_category,
+  in_stock = EXCLUDED.in_stock,
+  rating = EXCLUDED.rating,
+  reviews_count = EXCLUDED.reviews_count,
+  popular = EXCLUDED.popular,
+  image = EXCLUDED.image,
+  description = EXCLUDED.description,
+  information = EXCLUDED.information;
+
+INSERT INTO public.products (
+  id, shop_id, name, brand, quantity, price, original_price, discount_percent,
+  category, store_category, in_stock, rating, reviews_count, popular, image,
+  description, information
+) VALUES (
+  'daawat-basmati-5kg',
+  'maa-laxmi',
+  'Daawat Rozana Super Basmati Rice',
+  'Daawat',
+  '5 kg',
+  449,
+  499,
+  10,
+  'grocery',
+  'Grocery',
+  true,
+  4.7,
+  164,
+  true,
+  'https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=600&q=80',
+  'Aromatic slender grains naturally aged to perfection. Perfect grain elongation and fluffiness for daily meals, pulao, and khichdi.',
+  '{"Grain Length":"Extra Long","Aging":"Aged for 1 year"}'::jsonb
+)
+ON CONFLICT (id) DO UPDATE SET
+  shop_id = EXCLUDED.shop_id,
+  name = EXCLUDED.name,
+  brand = EXCLUDED.brand,
+  quantity = EXCLUDED.quantity,
+  price = EXCLUDED.price,
+  original_price = EXCLUDED.original_price,
+  discount_percent = EXCLUDED.discount_percent,
+  category = EXCLUDED.category,
+  store_category = EXCLUDED.store_category,
+  in_stock = EXCLUDED.in_stock,
+  rating = EXCLUDED.rating,
+  reviews_count = EXCLUDED.reviews_count,
+  popular = EXCLUDED.popular,
+  image = EXCLUDED.image,
+  description = EXCLUDED.description,
+  information = EXCLUDED.information;
+
+INSERT INTO public.products (
+  id, shop_id, name, brand, quantity, price, original_price, discount_percent,
+  category, store_category, in_stock, rating, reviews_count, popular, image,
+  description, information
+) VALUES (
+  'tata-toor-dal-1kg',
+  'maa-laxmi',
+  'Tata Sampann Unpolished Toor Dal',
+  'Tata Sampann',
+  '1 kg',
+  165,
+  185,
+  11,
+  'grocery',
+  'Grocery',
+  true,
+  4.8,
+  130,
+  true,
+  'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80',
+  'Unpolished arhar/toor dal without water or leather polishing. Retains wholesome natural taste and high protein goodness.',
+  '{"Polish":"Unpolished (No chemical polishing)","Protein":"22g per 100g"}'::jsonb
+)
+ON CONFLICT (id) DO UPDATE SET
+  shop_id = EXCLUDED.shop_id,
+  name = EXCLUDED.name,
+  brand = EXCLUDED.brand,
+  quantity = EXCLUDED.quantity,
+  price = EXCLUDED.price,
+  original_price = EXCLUDED.original_price,
+  discount_percent = EXCLUDED.discount_percent,
+  category = EXCLUDED.category,
+  store_category = EXCLUDED.store_category,
+  in_stock = EXCLUDED.in_stock,
+  rating = EXCLUDED.rating,
+  reviews_count = EXCLUDED.reviews_count,
+  popular = EXCLUDED.popular,
+  image = EXCLUDED.image,
+  description = EXCLUDED.description,
+  information = EXCLUDED.information;
+
+INSERT INTO public.products (
+  id, shop_id, name, brand, quantity, price, original_price, discount_percent,
+  category, store_category, in_stock, rating, reviews_count, popular, image,
+  description, information
+) VALUES (
+  'maggi-masala-4pack',
+  'maa-laxmi',
+  'Maggi 2-Minute Special Masala Noodles',
+  'Nestle',
+  '280 g (4 Packs)',
+  56,
+  60,
+  7,
+  'grocery',
+  'Snacks',
+  true,
+  4.9,
+  420,
+  true,
+  'https://images.unsplash.com/photo-1612927601601-6638404737ce?auto=format&fit=crop&w=600&q=80',
+  'Classic blend of 20 spices and herbs. Quick comfort meal ready in just 2 minutes for tea time or late-night cravings.',
+  '{"Servings":"4 portions","Flavor":"Authentic Masala"}'::jsonb
+)
+ON CONFLICT (id) DO UPDATE SET
+  shop_id = EXCLUDED.shop_id,
+  name = EXCLUDED.name,
+  brand = EXCLUDED.brand,
+  quantity = EXCLUDED.quantity,
+  price = EXCLUDED.price,
+  original_price = EXCLUDED.original_price,
+  discount_percent = EXCLUDED.discount_percent,
+  category = EXCLUDED.category,
+  store_category = EXCLUDED.store_category,
+  in_stock = EXCLUDED.in_stock,
+  rating = EXCLUDED.rating,
+  reviews_count = EXCLUDED.reviews_count,
+  popular = EXCLUDED.popular,
+  image = EXCLUDED.image,
+  description = EXCLUDED.description,
+  information = EXCLUDED.information;
+
+INSERT INTO public.products (
+  id, shop_id, name, brand, quantity, price, original_price, discount_percent,
+  category, store_category, in_stock, rating, reviews_count, popular, image,
+  description, information
+) VALUES (
+  'parle-g-gold-1kg',
+  'maa-laxmi',
+  'Parle-G Gold Glucose Biscuits Big Pack',
+  'Parle',
+  '1 kg',
+  115,
+  125,
+  8,
+  'grocery',
+  'Snacks',
+  true,
+  4.9,
+  380,
+  true,
+  'https://images.unsplash.com/photo-1558961363-fa8fdf82db35?auto=format&fit=crop&w=600&q=80',
+  'Richer, crunchier Parle-G Gold made with milk and wheat. Perfect companion for your morning cup of hot chai.',
+  '{"Ingredients":"Wheat Flour, Sugar, Invert Sugar Syrup, Milk Solids","Pack Type":"Family Value Pack"}'::jsonb
+)
+ON CONFLICT (id) DO UPDATE SET
+  shop_id = EXCLUDED.shop_id,
+  name = EXCLUDED.name,
+  brand = EXCLUDED.brand,
+  quantity = EXCLUDED.quantity,
+  price = EXCLUDED.price,
+  original_price = EXCLUDED.original_price,
+  discount_percent = EXCLUDED.discount_percent,
+  category = EXCLUDED.category,
+  store_category = EXCLUDED.store_category,
+  in_stock = EXCLUDED.in_stock,
+  rating = EXCLUDED.rating,
+  reviews_count = EXCLUDED.reviews_count,
+  popular = EXCLUDED.popular,
+  image = EXCLUDED.image,
+  description = EXCLUDED.description,
+  information = EXCLUDED.information;
+
+INSERT INTO public.products (
+  id, shop_id, name, brand, quantity, price, original_price, discount_percent,
+  category, store_category, in_stock, rating, reviews_count, popular, image,
+  description, information
+) VALUES (
+  'shimla-apple-1kg',
+  'fresh-basket',
+  'Crisp Shimla Royal Delicious Apples',
+  'Farm Fresh',
+  '1 kg (4–5 Pcs)',
+  179,
+  210,
+  15,
+  'fruits-veg',
+  'Exotic Fruits',
+  true,
+  4.7,
+  92,
+  true,
+  'https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?auto=format&fit=crop&w=600&q=80',
+  'Crispy sweet red apples directly sourced from Kinnaur & Shimla high altitude orchards. Naturally sweet, firm flesh and rich in antioxidants.',
+  '{"Origin":"Himachal Pradesh","Quality":"Grade A Hand-sorted"}'::jsonb
+)
+ON CONFLICT (id) DO UPDATE SET
+  shop_id = EXCLUDED.shop_id,
+  name = EXCLUDED.name,
+  brand = EXCLUDED.brand,
+  quantity = EXCLUDED.quantity,
+  price = EXCLUDED.price,
+  original_price = EXCLUDED.original_price,
+  discount_percent = EXCLUDED.discount_percent,
+  category = EXCLUDED.category,
+  store_category = EXCLUDED.store_category,
+  in_stock = EXCLUDED.in_stock,
+  rating = EXCLUDED.rating,
+  reviews_count = EXCLUDED.reviews_count,
+  popular = EXCLUDED.popular,
+  image = EXCLUDED.image,
+  description = EXCLUDED.description,
+  information = EXCLUDED.information;
+
+INSERT INTO public.products (
+  id, shop_id, name, brand, quantity, price, original_price, discount_percent,
+  category, store_category, in_stock, rating, reviews_count, popular, image,
+  description, information
+) VALUES (
+  'fresh-tomatoes-1kg',
+  'fresh-basket',
+  'Fresh Hybrid Red Tomatoes',
+  'Farm Fresh',
+  '1 kg',
+  38,
+  45,
+  15,
+  'fruits-veg',
+  'Daily Veggies',
+  true,
+  4.6,
+  150,
+  true,
+  'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&w=600&q=80',
+  'Firm, juicy, vine-ripened red tomatoes ideal for curries, gravies, fresh salads, and everyday dal tadka.',
+  '{"Sourced":"Local Odisha Farmers","Freshness":"Picked within 24 hours"}'::jsonb
+)
+ON CONFLICT (id) DO UPDATE SET
+  shop_id = EXCLUDED.shop_id,
+  name = EXCLUDED.name,
+  brand = EXCLUDED.brand,
+  quantity = EXCLUDED.quantity,
+  price = EXCLUDED.price,
+  original_price = EXCLUDED.original_price,
+  discount_percent = EXCLUDED.discount_percent,
+  category = EXCLUDED.category,
+  store_category = EXCLUDED.store_category,
+  in_stock = EXCLUDED.in_stock,
+  rating = EXCLUDED.rating,
+  reviews_count = EXCLUDED.reviews_count,
+  popular = EXCLUDED.popular,
+  image = EXCLUDED.image,
+  description = EXCLUDED.description,
+  information = EXCLUDED.information;
