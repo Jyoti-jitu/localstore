@@ -16,7 +16,7 @@ export default function Footer() {
           <div className="md:col-span-1 space-y-3">
             <NextLink href="/" className="inline-block">
               <img
-                src="/brand-logo.png"
+                src="https://rchkrkbuuwxhplfqhhao.supabase.co/storage/v1/object/public/localstore-assets/brand/brand-logo.png"
                 alt="LocalStore - Shop Local. Shop Online."
                 className="h-9 sm:h-10 w-auto object-contain"
               />
@@ -112,7 +112,6 @@ export default function Footer() {
           <div className="flex items-center gap-4">
             <NextLink href="/help" className="hover:text-neutral-600">Privacy Policy</NextLink>
             <NextLink href="/help" className="hover:text-neutral-600">Terms of Service</NextLink>
-            <NextLink href="/shopkeeper" className="text-emerald-700 font-bold hover:underline">Become a Shopkeeper</NextLink>
           </div>
         </div>
       </div>

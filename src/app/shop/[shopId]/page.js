@@ -6,6 +6,7 @@ import NextLink from "next/link";
 import { useShop, useProducts } from "@/hooks/useSupabaseData";
 import ProductCard from "@/components/ProductCard";
 import EmptyState from "@/components/EmptyState";
+import { ShopHeaderSkeleton, ProductSkeleton } from "@/components/LoadingSkeleton";
 import { useFavorites } from "@/context/FavoritesContext";
 import { useToast } from "@/context/ToastContext";
 import {
@@ -47,7 +48,9 @@ export default function ShopDetailPage() {
     if (!shop) return [];
     const pool = allDbProducts || [];
     const exact = pool.filter((p) => p.shopId === shop.id);
-    if (exact.length > 0) return exact;
+    if (exact.length > 0) {
+      return [...exact].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+    }
 
     // Complement with similar category items mapped to this shop
     const extra = pool.slice(0, 8).map((p, idx) => ({
@@ -110,9 +113,19 @@ export default function ShopDetailPage() {
 
   if (shopLoading) {
     return (
-      <div className="min-h-screen bg-[#fbfbfb] py-20 flex flex-col items-center justify-center">
-        <Loader2 className="w-8 h-8 text-emerald-600 animate-spin mb-3" />
-        <p className="text-xs text-neutral-500 font-medium">Loading store details from Supabase...</p>
+      <div className="min-h-screen bg-[#fbfbfb] pb-16">
+        <ShopHeaderSkeleton />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
+          <div className="flex items-center justify-between mb-4">
+            <div className="h-6 w-36 bg-neutral-200 rounded-md animate-pulse" />
+            <div className="h-4 w-20 bg-neutral-200 rounded-md animate-pulse" />
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3.5 sm:gap-4">
+            {Array.from({ length: 10 }).map((_, idx) => (
+              <ProductSkeleton key={idx} />
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
@@ -305,7 +318,13 @@ export default function ShopDetailPage() {
                 </span>
               </div>
 
-              {filteredProducts.length === 0 ? (
+              {productsLoading ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5 sm:gap-4">
+                  {Array.from({ length: 8 }).map((_, idx) => (
+                    <ProductSkeleton key={idx} />
+                  ))}
+                </div>
+              ) : filteredProducts.length === 0 ? (
                 <EmptyState
                   type="search"
                   title="No items found in this shop"
@@ -338,7 +357,7 @@ export default function ShopDetailPage() {
 
               <div className="space-y-2.5 text-xs text-neutral-700 pt-3 border-t border-neutral-100">
                 <div className="flex justify-between items-center">
-                  <span className="text-neutral-400">Shopkeeper:</span>
+                  <span className="text-neutral-400">Store Owner:</span>
                   <span className="font-semibold text-neutral-900">{shop.ownerName}</span>
                 </div>
                 <div className="flex justify-between items-center">

@@ -20,18 +20,37 @@ function calculateHaversineDistanceKm(lat1, lon1, lat2, lon2) {
 }
 
 export function LocationProvider({ children }) {
-  const [city, setCity] = useState("Bhubaneswar");
+  const [city, setCity] = useState(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const savedCity = localStorage.getItem("localstore_city");
+        if (savedCity) return savedCity;
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return "Bhubaneswar";
+  });
   const [localities, setLocalities] = useState([]);
-  const [currentLocality, setCurrentLocality] = useState({
-    id: "jayadev-vihar",
-    name: "Jayadev Vihar",
-    landmark: "Near Pal Heights & Fortune Towers",
-    distanceText: "0.8 km"
+  const [currentLocality, setCurrentLocality] = useState(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const savedLoc = localStorage.getItem("localstore_locality_obj");
+        if (savedLoc) return JSON.parse(savedLoc);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return {
+      id: "jayadev-vihar",
+      name: "Jayadev Vihar",
+      landmark: "Near Pal Heights & Fortune Towers",
+      distanceText: "0.8 km"
+    };
   });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDetecting, setIsDetecting] = useState(false);
   const [userCoordinates, setUserCoordinates] = useState(null);
-  const hasAutoAttemptedRef = useRef(false);
 
   // Helper to match nearest locality from database coordinates
   const findNearestLocality = useCallback((userLat, userLng, list) => {
@@ -146,7 +165,9 @@ export function LocationProvider({ children }) {
         try {
           const saved = localStorage.getItem("localstore_locality");
           if (saved) {
-            const found = data.find((l) => l.id === saved);
+            const found = data.find(
+              (l) => l.id === saved || l.name?.toLowerCase() === saved?.toLowerCase()
+            );
             if (found) initialLoc = found;
           }
         } catch (e) {
@@ -154,24 +175,37 @@ export function LocationProvider({ children }) {
         }
 
         setCurrentLocality(initialLoc);
-
-        // DEFAULT: Automatically detect location on user entry
-        if (!hasAutoAttemptedRef.current) {
-          hasAutoAttemptedRef.current = true;
-          detectLocation(data);
-        }
+        // User manually selects the location. No auto-detection on entry.
       }
     });
 
     return () => {
       isMounted = false;
     };
-  }, [detectLocation]);
+  }, []);
 
-  const selectLocality = (loc) => {
+  const selectCity = (cityName) => {
+    setCity(cityName);
+    try {
+      localStorage.setItem("localstore_city", cityName);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const selectLocality = (loc, cityName) => {
     setCurrentLocality(loc);
+    if (cityName) {
+      setCity(cityName);
+      try {
+        localStorage.setItem("localstore_city", cityName);
+      } catch (e) {
+        console.error(e);
+      }
+    }
     try {
       localStorage.setItem("localstore_locality", loc.id);
+      localStorage.setItem("localstore_locality_obj", JSON.stringify(loc));
     } catch (e) {
       console.error(e);
     }
@@ -183,6 +217,7 @@ export function LocationProvider({ children }) {
       value={{
         city,
         setCity,
+        selectCity,
         currentLocality,
         localities,
         isModalOpen,

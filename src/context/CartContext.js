@@ -1,10 +1,16 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { mapProductFromDb } from "@/lib/supabase/db";
+import { subscribeToTable, onVisibilityOrFocus } from "@/lib/supabase/realtime";
+import { useToast } from "@/context/ToastContext";
 
 const CartContext = createContext(null);
 
 export function CartProvider({ children }) {
+  const { showToast } = useToast();
+
   const [items, setItems] = useState(() => {
     if (typeof window === "undefined") return [];
     try {
@@ -28,6 +34,134 @@ export function CartProvider({ children }) {
       console.error("Failed to save cart", e);
     }
   }, [items]);
+
+  // Active validation against Supabase database for any stale, deleted, or altered cart items
+  const validateCart = useCallback(async () => {
+    if (items.length === 0) return { valid: true, removed: [], modified: [] };
+
+    try {
+      const supabase = createClient();
+      const currentIds = items.map((i) => i.product.id);
+      const { data: dbProducts, error } = await supabase
+        .from("products")
+        .select("*")
+        .in("id", currentIds);
+
+      if (error || !dbProducts) return { valid: true, removed: [], modified: [] };
+
+      const dbMap = new Map(dbProducts.map((p) => [p.id, mapProductFromDb(p)]));
+      const removed = [];
+      const modified = [];
+
+      setItems((prev) => {
+        let changed = false;
+        const next = [];
+
+        for (const item of prev) {
+          const dbProd = dbMap.get(item.product.id);
+          if (!dbProd) {
+            // Product no longer exists in Supabase (deleted by shopkeeper)
+            removed.push(item);
+            changed = true;
+          } else {
+            // Product exists, check for price or stock updates
+            if (
+              dbProd.price !== item.product.price ||
+              dbProd.inStock !== item.product.inStock ||
+              dbProd.name !== item.product.name
+            ) {
+              modified.push({ old: item.product, updated: dbProd });
+              next.push({
+                ...item,
+                product: {
+                  ...item.product,
+                  ...dbProd
+                }
+              });
+              changed = true;
+            } else {
+              next.push(item);
+            }
+          }
+        }
+
+        if (removed.length > 0) {
+          const names = removed.map((r) => r.product?.name).join(", ");
+          showToast(
+            `"${names}" was removed because the shopkeeper deleted this product.`,
+            "error",
+            6000
+          );
+        }
+
+        return changed ? next : prev;
+      });
+
+      return { valid: removed.length === 0, removed, modified };
+    } catch (err) {
+      console.error("Cart validation error:", err);
+      return { valid: true, removed: [], modified: [] };
+    }
+  }, [items, showToast]);
+
+  // Subscribe to real-time changes on products table
+  useEffect(() => {
+    const unsubscribe = subscribeToTable("products", (payload) => {
+      const { eventType, new: newRow, old: oldRow } = payload;
+
+      if (eventType === "DELETE") {
+        const deletedId = oldRow?.id;
+        if (!deletedId) return;
+
+        setItems((prev) => {
+          const match = prev.find((i) => i.product?.id === deletedId);
+          if (!match) return prev;
+
+          const prodName = match.product?.name || "A product in your cart";
+          showToast(
+            `"${prodName}" was deleted by the store owner and was removed from your cart.`,
+            "error",
+            6000
+          );
+
+          return prev.filter((i) => i.product?.id !== deletedId);
+        });
+      } else if (eventType === "UPDATE") {
+        const updatedId = newRow?.id;
+        if (!updatedId) return;
+
+        setItems((prev) => {
+          const match = prev.find((i) => i.product?.id === updatedId);
+          if (!match) return prev;
+
+          const updatedProd = mapProductFromDb(newRow);
+          if (!updatedProd) return prev;
+
+          if (!updatedProd.inStock && match.product?.inStock) {
+            showToast(`"${updatedProd.name}" is now out of stock.`, "info", 5000);
+          } else if (updatedProd.price !== match.product?.price) {
+            showToast(`Price for "${updatedProd.name}" updated to ₹${updatedProd.price}.`, "info", 4000);
+          }
+
+          return prev.map((i) =>
+            i.product?.id === updatedId
+              ? { ...i, product: { ...i.product, ...updatedProd } }
+              : i
+          );
+        });
+      }
+    });
+
+    // Revalidate cart whenever user returns to the tab
+    const unbindFocus = onVisibilityOrFocus(() => {
+      validateCart();
+    });
+
+    return () => {
+      unsubscribe();
+      unbindFocus();
+    };
+  }, [showToast, validateCart]);
 
   const addToCart = (product, qty = 1) => {
     if (!product || !product.id) return;
@@ -116,6 +250,7 @@ export function CartProvider({ children }) {
         removeFromCart,
         clearCart,
         getItemQuantity,
+        validateCart,
         totalItems,
         itemsSubtotal,
         groupedByStore,

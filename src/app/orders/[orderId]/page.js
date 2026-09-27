@@ -62,9 +62,42 @@ export default function OrderTrackingPage() {
 
   if (!order && loadingRemote) {
     return (
-      <div className="min-h-screen bg-[#fbfbfb] py-12 flex flex-col items-center justify-center">
-        <Loader2 className="w-8 h-8 text-emerald-600 animate-spin mb-3" />
-        <p className="text-xs text-neutral-500 font-medium">Retrieving order details from Supabase...</p>
+      <div className="min-h-screen bg-[#fbfbfb] py-3 sm:py-8 pb-20 md:pb-8">
+        <div className="max-w-4xl mx-auto px-3 sm:px-6 lg:px-8 space-y-4 sm:space-y-6 animate-pulse">
+          <div className="flex items-center justify-between">
+            <div className="h-6 w-32 bg-neutral-200 rounded-lg" />
+            <div className="h-6 w-24 bg-neutral-200 rounded-lg" />
+          </div>
+          <div className="bg-white rounded-3xl p-6 border border-neutral-200/80 shadow-xs space-y-4">
+            <div className="flex justify-between items-center">
+              <div className="h-5 w-40 bg-neutral-200 rounded-md" />
+              <div className="h-6 w-24 bg-neutral-200 rounded-full" />
+            </div>
+            <div className="h-10 w-full bg-neutral-100 rounded-xl" />
+            <div className="grid grid-cols-3 gap-3 pt-2">
+              <div className="h-8 bg-neutral-100 rounded-lg" />
+              <div className="h-8 bg-neutral-100 rounded-lg" />
+              <div className="h-8 bg-neutral-100 rounded-lg" />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="md:col-span-2 bg-white rounded-3xl p-6 border border-neutral-200/80 shadow-xs space-y-4">
+              <div className="h-5 w-32 bg-neutral-200 rounded-md" />
+              <div className="space-y-3">
+                <div className="h-12 bg-neutral-100 rounded-xl" />
+                <div className="h-12 bg-neutral-100 rounded-xl" />
+                <div className="h-12 bg-neutral-100 rounded-xl" />
+              </div>
+            </div>
+            <div className="space-y-4">
+              <div className="bg-white rounded-3xl p-6 border border-neutral-200/80 shadow-xs space-y-3">
+                <div className="h-5 w-28 bg-neutral-200 rounded-md" />
+                <div className="h-16 bg-neutral-100 rounded-xl" />
+                <div className="h-10 bg-neutral-100 rounded-xl" />
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -202,7 +235,7 @@ export default function OrderTrackingPage() {
               </div>
             )}
 
-            {/* Shopkeeper Details */}
+            {/* Store Details */}
             <div className="bg-white rounded-3xl border border-neutral-200/90 p-5 shadow-xs space-y-3">
               <div className="text-xs font-bold uppercase tracking-wider text-neutral-400 flex items-center gap-1.5">
                 <Store className="w-4 h-4 text-emerald-600" />
@@ -221,7 +254,7 @@ export default function OrderTrackingPage() {
                 <button
                   onClick={() => handleCall(order.shopPhone, order.shopName)}
                   className="p-2.5 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-700 transition-colors"
-                  title="Call shopkeeper"
+                  title="Call store"
                 >
                   <Phone className="w-4 h-4" />
                 </button>
@@ -234,8 +267,19 @@ export default function OrderTrackingPage() {
                 <MapPin className="w-4 h-4 text-emerald-600" />
                 <span>Delivery Address</span>
               </div>
-              <p className="text-xs text-neutral-700 font-semibold leading-relaxed">
-                {order.deliveryAddress?.street}, {order.deliveryAddress?.city} - {order.deliveryAddress?.pincode}
+              {(order.deliveryAddress?.recipient || order.customerName) && (
+                <div className="text-xs font-bold text-neutral-900">
+                  {order.deliveryAddress?.recipient || order.customerName}
+                  {(order.deliveryAddress?.phone || order.customerPhone) && (
+                    <span className="text-neutral-500 font-normal"> · {order.deliveryAddress?.phone || order.customerPhone}</span>
+                  )}
+                </div>
+              )}
+              <p className="text-xs text-neutral-600 leading-relaxed">
+                {order.deliveryAddress?.street ? `${order.deliveryAddress.street}, ` : ""}
+                {order.deliveryAddress?.locality ? `${order.deliveryAddress.locality}, ` : ""}
+                {order.deliveryAddress?.city || "Bhubaneswar"}
+                {order.deliveryAddress?.pincode ? ` - ${order.deliveryAddress.pincode}` : ""}
               </p>
             </div>
           </div>
@@ -282,11 +326,11 @@ export default function OrderTrackingPage() {
                 </div>
               )}
               <div className="flex justify-between items-baseline pt-2 border-t border-neutral-100 text-sm font-extrabold text-neutral-900">
-                <span>Total Paid</span>
+                <span>{order.paymentMethod === "Cash on Delivery" ? "Payable on Delivery" : "Total Paid"}</span>
                 <span className="text-lg">₹{order.total}</span>
               </div>
-              <div className="text-[11px] text-neutral-400">
-                Paid via {order.paymentMethod} ({order.paymentStatus})
+              <div className="text-[11px] text-neutral-500 font-medium">
+                Payment: {order.paymentMethod || "Cash on Delivery"} ({order.paymentStatus || "Pay on Delivery"})
               </div>
             </div>
           </div>
@@ -302,7 +346,7 @@ export default function OrderTrackingPage() {
       >
         <div className="space-y-4 text-xs text-neutral-600">
           <p>
-            If you cancel now, your order will not be prepared and any online payment will be refunded to your source UPI/Card within 1–2 business days.
+            If you cancel now, your order will not be prepared and no payment will be collected upon delivery.
           </p>
           <div className="flex justify-end gap-2 pt-2">
             <button

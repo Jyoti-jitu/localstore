@@ -1,7 +1,8 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { getOrders, createOrder as createSupabaseOrder } from "@/lib/supabase/db";
+import { getOrders, createOrder as createSupabaseOrder, mapOrderFromDb } from "@/lib/supabase/db";
+import { subscribeToTable, onVisibilityOrFocus } from "@/lib/supabase/realtime";
 
 const OrdersContext = createContext(null);
 
@@ -13,31 +14,101 @@ export function OrdersProvider({ children }) {
     let isMounted = true;
     async function loadOrders() {
       try {
-        const saved = localStorage.getItem("localstore_orders");
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (isMounted && Array.isArray(parsed) && parsed.length > 0) {
-            setOrders(parsed);
-          } else {
-            const remoteOrders = await getOrders();
-            if (isMounted) setOrders(remoteOrders || []);
-          }
+        const remoteOrders = await getOrders();
+        if (isMounted && Array.isArray(remoteOrders) && remoteOrders.length > 0) {
+          setOrders(remoteOrders);
         } else {
-          // Fetch directly from Supabase
-          const remoteOrders = await getOrders();
-          if (isMounted) setOrders(remoteOrders || []);
+          const saved = localStorage.getItem("localstore_orders");
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            if (isMounted && Array.isArray(parsed) && parsed.length > 0) {
+              setOrders(parsed);
+            }
+          }
         }
       } catch (e) {
-        console.error(e);
-        if (isMounted) setOrders([]);
+        console.error("Error loading orders from Supabase:", e);
       } finally {
         if (isMounted) setIsLoaded(true);
       }
     }
 
     loadOrders();
+
+    // Subscribe to realtime changes on orders table
+    const unsubscribe = subscribeToTable("orders", (payload) => {
+      if (!isMounted) return;
+      const { eventType, new: newRow } = payload;
+
+      if (eventType === "UPDATE" && newRow) {
+        setOrders((prev) =>
+          prev.map((o) => {
+            if (o.orderId === newRow.id || o.id === newRow.id) {
+              const newStatus = newRow.status;
+              const statusLabel =
+                newStatus === "placed"
+                  ? "Store Accepted"
+                  : newStatus === "confirmed" || newStatus === "preparing"
+                  ? "Preparing Your Order"
+                  : newStatus === "out_for_delivery"
+                  ? "Out for Delivery"
+                  : newStatus === "delivered"
+                  ? "Delivered"
+                  : newStatus === "cancelled"
+                  ? "Cancelled"
+                  : o.statusLabel;
+
+              const updatedTimeline = (o.timeline || []).map((t) => {
+                if (newStatus === "delivered") return { ...t, completed: true, current: t.step === "Delivered" };
+                if (newStatus === "out_for_delivery") {
+                  return {
+                    ...t,
+                    completed: t.step !== "Delivered",
+                    current: t.step === "Out for Delivery"
+                  };
+                }
+                if (newStatus === "confirmed" || newStatus === "preparing") {
+                  return {
+                    ...t,
+                    completed: t.step === "Order Placed" || t.step === "Store Accepted",
+                    current: t.step === "Preparing Your Order"
+                  };
+                }
+                if (newStatus === "cancelled") {
+                  return { ...t, completed: false, current: false };
+                }
+                return t;
+              });
+
+              return {
+                ...o,
+                status: newStatus,
+                statusLabel,
+                timeline: updatedTimeline
+              };
+            }
+            return o;
+          })
+        );
+      } else if (eventType === "INSERT" && newRow) {
+        const mapped = mapOrderFromDb(newRow);
+        if (mapped) {
+          setOrders((prev) => {
+            if (prev.some((o) => o.orderId === mapped.orderId)) return prev;
+            return [mapped, ...prev];
+          });
+        }
+      }
+    });
+
+    const unbindFocus = onVisibilityOrFocus(() => {
+      if (isMounted) loadOrders();
+    });
+
     return () => {
       isMounted = false;
+      unsubscribe();
+      unbindFocus();
     };
   }, []);
 
@@ -109,8 +180,8 @@ export function OrdersProvider({ children }) {
       platformFee,
       discount,
       total,
-      paymentMethod,
-      paymentStatus: paymentMethod === "Cash on Delivery" ? "Pay on Delivery" : "Paid via UPI",
+      paymentMethod: paymentMethod || "Cash on Delivery",
+      paymentStatus: "Pay on Delivery",
       deliveryAddress,
       timeline: [
         { step: "Order Placed", time: "Just now", completed: true, current: false },
@@ -157,6 +228,8 @@ export function OrdersProvider({ children }) {
     <OrdersContext.Provider
       value={{
         orders,
+        loading: !isLoaded,
+        isLoaded,
         createOrder,
         getOrderById,
         cancelOrder

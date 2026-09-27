@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import NextLink from "next/link";
 import { useCart } from "@/context/CartContext";
@@ -9,7 +9,7 @@ import { useToast } from "@/context/ToastContext";
 import { useLocation } from "@/context/LocationContext";
 import { useAuth } from "@/context/AuthContext";
 import { useAddresses } from "@/hooks/useSupabaseData";
-import { createAddress } from "@/lib/supabase/db";
+import { createAddress, updateAddress } from "@/lib/supabase/db";
 import AddressCard from "@/components/AddressCard";
 import PaymentMethodCard from "@/components/PaymentMethodCard";
 import Modal from "@/components/Modal";
@@ -26,9 +26,12 @@ import {
   ArrowRight,
   AlertCircle,
   User,
+  Phone,
+  Pencil,
   Sparkles,
   LogIn,
-  Lock
+  Lock,
+  Banknote
 } from "lucide-react";
 
 export default function CheckoutPage() {
@@ -39,7 +42,6 @@ export default function CheckoutPage() {
     isAuthenticated,
     loading: authLoading,
     openAuthModal,
-    loginAsDemoUser
   } = useAuth();
 
   const {
@@ -51,7 +53,8 @@ export default function CheckoutPage() {
     platformFee,
     discount,
     grandTotal,
-    clearCart
+    clearCart,
+    validateCart
   } = useCart();
 
   const { createOrder } = useOrders();
@@ -60,7 +63,7 @@ export default function CheckoutPage() {
   const locList = localities || [];
 
   // Step 1: Address from Supabase
-  const { addresses, setAddresses } = useAddresses();
+  const { addresses, setAddresses } = useAddresses(user?.id);
   const [selectedAddressId, setSelectedAddressId] = useState(null);
   const selectedAddress =
     addresses.find((a) => a.id === selectedAddressId) ||
@@ -69,18 +72,39 @@ export default function CheckoutPage() {
     null;
 
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
+  const [editingAddressId, setEditingAddressId] = useState(null);
   const [newLabel, setNewLabel] = useState("Home");
+  const [newRecipient, setNewRecipient] = useState(profile?.name || "");
+  const [newPhone, setNewPhone] = useState(profile?.phone || "");
   const [newStreet, setNewStreet] = useState("");
   const [newLocality, setNewLocality] = useState("Jayadev Vihar");
+
+  const handleOpenAddAddressModal = () => {
+    setEditingAddressId(null);
+    setNewLabel("Home");
+    setNewRecipient(profile?.name || "Rahul Mohapatra");
+    setNewPhone(profile?.phone || "+91 98610 54321");
+    setNewStreet("");
+    setNewLocality(locList[0]?.name || "Jayadev Vihar");
+    setIsAddressModalOpen(true);
+  };
+
+  const handleOpenEditAddressModal = (addr) => {
+    setEditingAddressId(addr.id);
+    setNewLabel(addr.label || "Home");
+    setNewRecipient(addr.recipient || profile?.name || "Rahul Mohapatra");
+    setNewPhone(addr.phone || profile?.phone || "+91 98610 54321");
+    setNewStreet(addr.street || "");
+    setNewLocality(addr.locality || locList[0]?.name || "Jayadev Vihar");
+    setIsAddressModalOpen(true);
+  };
 
   // Step 2: Delivery Notes
   const [deliveryNote, setDeliveryNote] = useState("");
   const [leaveAtDoor, setLeaveAtDoor] = useState(false);
 
-  // Step 3: Payment
-  const [selectedPayment, setSelectedPayment] = useState("upi");
-  const [upiId, setUpiId] = useState("rahul@oksbi");
-  const [selectedUpiApp, setSelectedUpiApp] = useState("gpay");
+  // Step 3: Payment (Cash on Delivery Only)
+  const [selectedPayment, setSelectedPayment] = useState("cod");
 
   // Step 4: Submission
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
@@ -107,33 +131,61 @@ export default function CheckoutPage() {
     e.preventDefault();
     if (!newStreet.trim()) return;
 
-    const newAddr = {
-      id: `addr-${Date.now()}`,
-      label: newLabel,
-      isDefault: addresses.length === 0,
-      recipient: profile?.name || "Rahul Mohapatra",
-      phone: profile?.phone || "+91 98610 54321",
-      street: newStreet,
-      locality: newLocality || (locList[0]?.name || "Jayadev Vihar"),
-      city: "Bhubaneswar",
-      pincode: "751013",
-      userId: user?.id || null
-    };
+    const recipientName = newRecipient.trim() || profile?.name || "Customer";
+    const phoneNo = newPhone.trim() || profile?.phone || "";
 
-    setAddresses((prev) => [newAddr, ...prev]);
-    setSelectedAddressId(newAddr.id);
-    setIsAddressModalOpen(false);
-    setNewStreet("");
-    showToast("New address added successfully!");
+    if (editingAddressId) {
+      const updatedAddr = {
+        ...addresses.find((a) => a.id === editingAddressId),
+        label: newLabel,
+        recipient: recipientName,
+        phone: phoneNo,
+        street: newStreet.trim(),
+        locality: newLocality || (locList[0]?.name || "Jayadev Vihar"),
+        city: "Bhubaneswar",
+        pincode: "751013"
+      };
 
-    try {
-      await createAddress(newAddr);
-    } catch (err) {
-      console.error("Failed to save address to Supabase:", err);
+      setAddresses((prev) => prev.map((a) => (a.id === editingAddressId ? updatedAddr : a)));
+      setSelectedAddressId(updatedAddr.id);
+      setIsAddressModalOpen(false);
+      setEditingAddressId(null);
+      showToast("Address updated successfully!");
+
+      try {
+        await updateAddress(editingAddressId, updatedAddr);
+      } catch (err) {
+        console.error("Failed to update address in Supabase:", err);
+      }
+    } else {
+      const newAddr = {
+        id: `addr-${Date.now()}`,
+        label: newLabel,
+        isDefault: addresses.length === 0,
+        recipient: recipientName,
+        phone: phoneNo,
+        street: newStreet.trim(),
+        locality: newLocality || (locList[0]?.name || "Jayadev Vihar"),
+        city: "Bhubaneswar",
+        pincode: "751013",
+        userId: user?.id || null
+      };
+
+      setAddresses((prev) => [newAddr, ...prev]);
+      setSelectedAddressId(newAddr.id);
+      setIsAddressModalOpen(false);
+      setNewStreet("");
+      showToast("New address added successfully!");
+
+      try {
+        await createAddress(newAddr);
+      } catch (err) {
+        console.error("Failed to save address to Supabase:", err);
+      }
     }
   };
 
-  const handlePlaceOrder = () => {
+  const handlePlaceOrder = async () => {
     if (!isAuthenticated) {
       openAuthModal("signin", "/checkout");
       showToast("Please sign in or register to place your order.");
@@ -142,26 +194,35 @@ export default function CheckoutPage() {
 
     setIsPlacingOrder(true);
 
+    // Live validation against Supabase products table
+    try {
+      const validation = await validateCart();
+      if (validation && validation.removed && validation.removed.length > 0) {
+        setIsPlacingOrder(false);
+        showToast(
+          "Some items in your cart were removed because they were deleted by the store owner. Please review before proceeding.",
+          "error",
+          6000
+        );
+        return;
+      }
+    } catch (e) {
+      console.warn("Pre-order validation check bypassed on error", e);
+    }
+
     const firstStoreGroup = Object.values(groupedByStore)[0];
 
     setTimeout(async () => {
       const order = await createOrder({
         userId: user?.id,
-        customerName: profile?.name || selectedAddress?.recipient,
-        customerPhone: profile?.phone || selectedAddress?.phone,
+        customerName: selectedAddress?.recipient || profile?.name || "Customer",
+        customerPhone: selectedAddress?.phone || profile?.phone || "",
         items,
         shopId: firstStoreGroup?.shopId || "sharma-grocery",
         shopName: firstStoreGroup?.shopName || "Sharma Grocery Store",
         shopAddress: "Bhubaneswar, Odisha",
         deliveryAddress: selectedAddress,
-        paymentMethod:
-          selectedPayment === "upi"
-            ? `UPI (${selectedUpiApp.toUpperCase()})`
-            : selectedPayment === "card"
-            ? "Credit / Debit Card"
-            : selectedPayment === "netbanking"
-            ? "Net Banking"
-            : "Cash on Delivery",
+        paymentMethod: "Cash on Delivery",
         itemsTotal: itemsSubtotal,
         deliveryFee,
         platformFee,
@@ -173,7 +234,7 @@ export default function CheckoutPage() {
       setIsPlacingOrder(false);
       showToast("Order placed successfully!", "success");
       router.push(`/order-success?orderId=${order.orderId}`);
-    }, 1000);
+    }, 800);
   };
 
   return (
@@ -242,20 +303,6 @@ export default function CheckoutPage() {
                     <span>Register New Account</span>
                   </button>
                 </div>
-
-                <div className="pt-2 border-t border-neutral-100">
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      await loginAsDemoUser();
-                      showToast("Logged in as Rahul Mohapatra (Demo User). You can now complete your order!");
-                    }}
-                    className="w-full py-2.5 px-3 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 group"
-                  >
-                    <Sparkles className="w-4 h-4 text-emerald-600 group-hover:scale-110 transition-transform" />
-                    <span>⚡ Quick 1-Click Demo Login (Rahul Mohapatra)</span>
-                  </button>
-                </div>
               </div>
             ) : (
               <div className="bg-emerald-50/90 border border-emerald-200 rounded-2xl sm:rounded-3xl p-4 sm:p-5 flex items-center justify-between gap-3 shadow-2xs">
@@ -298,7 +345,7 @@ export default function CheckoutPage() {
                 </div>
 
                 <button
-                  onClick={() => setIsAddressModalOpen(true)}
+                  onClick={handleOpenAddAddressModal}
                   className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-xl transition-colors"
                 >
                   <Plus className="w-3.5 h-3.5" />
@@ -313,6 +360,7 @@ export default function CheckoutPage() {
                     address={addr}
                     isSelected={selectedAddress?.id === addr.id}
                     onSelect={() => setSelectedAddressId(addr.id)}
+                    onEdit={handleOpenEditAddressModal}
                   />
                 ))}
               </div>
@@ -359,7 +407,7 @@ export default function CheckoutPage() {
               {/* Delivery instructions */}
               <div className="space-y-2">
                 <label className="text-xs font-semibold text-neutral-700">
-                  Instructions for the Shopkeeper & Rider (Optional)
+                  Instructions for Store & Delivery Partner (Optional)
                 </label>
                 <input
                   type="text"
@@ -395,117 +443,29 @@ export default function CheckoutPage() {
               </div>
 
               <div className="space-y-3">
-                {/* UPI Option */}
-                <PaymentMethodCard
-                  method={{
-                    id: "upi",
-                    title: "UPI (Instant & Zero Fee)",
-                    subtitle: "Google Pay, PhonePe, Paytm, BHIM UPI"
-                  }}
-                  isSelected={selectedPayment === "upi"}
-                  onSelect={setSelectedPayment}
-                  details={
-                    <div className="space-y-3">
-                      <div className="grid grid-cols-3 gap-2">
-                        {["gpay", "phonepe", "paytm"].map((app) => (
-                          <button
-                            key={app}
-                            type="button"
-                            onClick={() => setSelectedUpiApp(app)}
-                            className={`py-2 px-3 rounded-xl border text-xs font-bold capitalize transition-colors ${
-                              selectedUpiApp === app
-                                ? "bg-emerald-600 text-white border-emerald-600"
-                                : "bg-neutral-50 text-neutral-700 border-neutral-200 hover:bg-neutral-100"
-                            }`}
-                          >
-                            {app === "gpay" ? "Google Pay" : app === "phonepe" ? "PhonePe" : "Paytm"}
-                          </button>
-                        ))}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="text"
-                          value={upiId}
-                          onChange={(e) => setUpiId(e.target.value)}
-                          placeholder="yourname@upi"
-                          className="flex-1 px-3 py-2 text-xs bg-white border border-neutral-200 rounded-xl focus:outline-none focus:border-emerald-600"
-                        />
-                        <span className="text-[11px] text-emerald-700 font-semibold bg-emerald-50 px-2 py-1 rounded-md">
-                          Verified
-                        </span>
-                      </div>
-                    </div>
-                  }
-                />
-
-                {/* Credit/Debit Card */}
-                <PaymentMethodCard
-                  method={{
-                    id: "card",
-                    title: "Credit / Debit Card",
-                    subtitle: "Visa, MasterCard, RuPay, Maestro"
-                  }}
-                  isSelected={selectedPayment === "card"}
-                  onSelect={setSelectedPayment}
-                  details={
-                    <div className="space-y-2.5">
-                      <input
-                        type="text"
-                        placeholder="Card Number (4532 •••• •••• ••••)"
-                        defaultValue="4532 9812 7741 0029"
-                        className="w-full px-3 py-2 text-xs bg-white border border-neutral-200 rounded-xl focus:outline-none focus:border-emerald-600"
-                      />
-                      <div className="grid grid-cols-2 gap-2">
-                        <input
-                          type="text"
-                          placeholder="MM / YY"
-                          defaultValue="08/29"
-                          className="w-full px-3 py-2 text-xs bg-white border border-neutral-200 rounded-xl focus:outline-none focus:border-emerald-600"
-                        />
-                        <input
-                          type="password"
-                          placeholder="CVV"
-                          defaultValue="782"
-                          maxLength={4}
-                          className="w-full px-3 py-2 text-xs bg-white border border-neutral-200 rounded-xl focus:outline-none focus:border-emerald-600"
-                        />
-                      </div>
-                    </div>
-                  }
-                />
-
-                {/* Net Banking */}
-                <PaymentMethodCard
-                  method={{
-                    id: "netbanking",
-                    title: "Net Banking",
-                    subtitle: "All major Indian banks supported"
-                  }}
-                  isSelected={selectedPayment === "netbanking"}
-                  onSelect={setSelectedPayment}
-                  details={
-                    <select className="w-full px-3 py-2 text-xs bg-white border border-neutral-200 rounded-xl focus:outline-none focus:border-emerald-600">
-                      <option>State Bank of India (SBI)</option>
-                      <option>HDFC Bank</option>
-                      <option>ICICI Bank</option>
-                      <option>Axis Bank</option>
-                      <option>Punjab National Bank</option>
-                    </select>
-                  }
-                />
-
-                {/* Cash on Delivery */}
+                {/* Cash on Delivery as the sole payment method */}
                 <PaymentMethodCard
                   method={{
                     id: "cod",
                     title: "Cash on Delivery (COD)",
-                    subtitle: "Pay cash or scan QR at your doorstep"
+                    subtitle: "Pay in cash or scan delivery partner's QR code at your doorstep"
                   }}
-                  isSelected={selectedPayment === "cod"}
-                  onSelect={setSelectedPayment}
+                  isSelected={true}
+                  onSelect={() => setSelectedPayment("cod")}
                   details={
-                    <div className="text-[11px] text-neutral-500">
-                      Please keep exact cash ready or request your delivery rider to show their UPI QR code upon arrival.
+                    <div className="space-y-2.5 pt-1 text-xs text-neutral-600">
+                      <div className="flex items-start gap-2 text-neutral-700">
+                        <span className="text-emerald-600 font-bold">✓</span>
+                        <span><strong>100% Risk-Free:</strong> No advance online payment required. Inspect your order at your doorstep before paying.</span>
+                      </div>
+                      <div className="flex items-start gap-2 text-neutral-700">
+                        <span className="text-emerald-600 font-bold">✓</span>
+                        <span><strong>Doorstep Payment Options:</strong> Keep exact cash ready or scan the rider&apos;s UPI QR code upon delivery.</span>
+                      </div>
+                      <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200/70 text-amber-800 text-[11px] flex items-center gap-2">
+                        <Banknote className="w-4 h-4 text-amber-700 flex-shrink-0" />
+                        <span>Online advance payments (UPI/Card) are disabled. Only Cash on Delivery is supported for all local store orders.</span>
+                      </div>
                     </div>
                   }
                 />
@@ -558,8 +518,16 @@ export default function CheckoutPage() {
                     <span>-₹{discount}</span>
                   </div>
                 )}
+                <div className="p-2.5 rounded-xl bg-emerald-50/80 border border-emerald-200/60 flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2">
+                    <Banknote className="w-4 h-4 text-emerald-700" />
+                    <span className="text-neutral-700 font-medium">Payment Mode</span>
+                  </div>
+                  <span className="font-bold text-emerald-800">Cash on Delivery</span>
+                </div>
+
                 <div className="flex justify-between items-baseline pt-2 border-t border-neutral-100 text-sm font-extrabold text-neutral-900">
-                  <span>Total Amount</span>
+                  <span>Payable on Delivery</span>
                   <span className="text-xl">₹{grandTotal}</span>
                 </div>
               </div>
@@ -578,13 +546,13 @@ export default function CheckoutPage() {
                 ) : !isAuthenticated ? (
                   <>
                     <Lock className="w-4 h-4" />
-                    <span>Sign In & Place Order</span>
+                    <span>Sign In & Place COD Order</span>
                     <span>•</span>
                     <span>₹{grandTotal}</span>
                   </>
                 ) : (
                   <>
-                    <span>Place Order</span>
+                    <span>Place COD Order</span>
                     <span>•</span>
                     <span>₹{grandTotal}</span>
                     <ArrowRight className="w-4 h-4 ml-1" />
@@ -605,7 +573,7 @@ export default function CheckoutPage() {
       <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 p-3 bg-white/95 backdrop-blur-md border-t border-neutral-200 shadow-2xl flex items-center justify-between gap-3">
         <div>
           <div className="text-[10px] text-neutral-400 font-bold uppercase leading-tight">
-            Total Payable
+            Pay on Delivery
           </div>
           <div className="text-lg font-black text-neutral-900 leading-tight">
             ₹{grandTotal}
@@ -628,19 +596,26 @@ export default function CheckoutPage() {
             </>
           ) : (
             <>
-              <span>Place Order</span>
+              <span>Place COD Order</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </>
           )}
         </button>
       </div>
 
-      {/* Add New Address Modal */}
+      {/* Add / Edit Delivery Address Modal */}
       <Modal
         isOpen={isAddressModalOpen}
-        onClose={() => setIsAddressModalOpen(false)}
-        title="Add New Delivery Address"
-        subtitle="Save address for fast neighborhood delivery in Bhubaneswar"
+        onClose={() => {
+          setIsAddressModalOpen(false);
+          setEditingAddressId(null);
+        }}
+        title={editingAddressId ? "Edit Delivery Address" : "Add New Delivery Address"}
+        subtitle={
+          editingAddressId
+            ? "Update recipient name, phone number, and address details"
+            : "Save address for fast neighborhood delivery in Bhubaneswar"
+        }
       >
         <form onSubmit={handleAddNewAddress} className="space-y-4">
           <div>
@@ -662,6 +637,43 @@ export default function CheckoutPage() {
                   {lbl}
                 </button>
               ))}
+            </div>
+          </div>
+
+          {/* Customer / Recipient Name & Contact Phone */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-bold text-neutral-700 uppercase tracking-wider mb-1.5">
+                Customer Name <span className="text-rose-500">*</span>
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  required
+                  value={newRecipient}
+                  onChange={(e) => setNewRecipient(e.target.value)}
+                  placeholder="e.g. Rahul Mohapatra"
+                  className="w-full pl-9 pr-3.5 py-2.5 text-xs bg-neutral-50 border border-neutral-200 rounded-xl focus:outline-none focus:border-emerald-600 font-medium text-neutral-800"
+                />
+                <User className="w-4 h-4 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-neutral-700 uppercase tracking-wider mb-1.5">
+                Contact Phone <span className="text-rose-500">*</span>
+              </label>
+              <div className="relative">
+                <input
+                  type="tel"
+                  required
+                  value={newPhone}
+                  onChange={(e) => setNewPhone(e.target.value)}
+                  placeholder="e.g. +91 98610 54321"
+                  className="w-full pl-9 pr-3.5 py-2.5 text-xs bg-neutral-50 border border-neutral-200 rounded-xl focus:outline-none focus:border-emerald-600 font-medium text-neutral-800"
+                />
+                <Phone className="w-4 h-4 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              </div>
             </div>
           </div>
 
@@ -699,7 +711,10 @@ export default function CheckoutPage() {
           <div className="pt-2 flex justify-end gap-2">
             <button
               type="button"
-              onClick={() => setIsAddressModalOpen(false)}
+              onClick={() => {
+                setIsAddressModalOpen(false);
+                setEditingAddressId(null);
+              }}
               className="px-4 py-2 text-xs font-semibold text-neutral-600 hover:bg-neutral-100 rounded-xl"
             >
               Cancel
@@ -708,7 +723,7 @@ export default function CheckoutPage() {
               type="submit"
               className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs"
             >
-              Save & Deliver Here
+              {editingAddressId ? "Update Address" : "Save & Deliver Here"}
             </button>
           </div>
         </form>

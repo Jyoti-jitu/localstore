@@ -12,8 +12,12 @@ import {
   getAddresses,
   getNotifications,
   getFaqs,
-  getSearchSuggestions
+  getSearchSuggestions,
+  mapProductFromDb,
+  mapShopFromDb,
+  mapOrderFromDb
 } from '@/lib/supabase/db';
+import { subscribeToTable, onVisibilityOrFocus } from '@/lib/supabase/realtime';
 
 export function useCategories() {
   const [categories, setCategories] = useState([]);
@@ -78,6 +82,20 @@ export function useShops(filters = {}) {
 
   const filterKey = JSON.stringify(filters);
 
+  const refresh = useCallback(() => {
+    return getShops(filters)
+      .then((data) => {
+        setShops(data);
+        setLoading(false);
+        return data;
+      })
+      .catch((err) => {
+        setError(err);
+        setLoading(false);
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterKey]);
+
   useEffect(() => {
     let isMounted = true;
     getShops(filters)
@@ -93,13 +111,45 @@ export function useShops(filters = {}) {
           setLoading(false);
         }
       });
+
+    // Realtime subscription to shop status / details updates
+    const unsubscribe = subscribeToTable('shops', (payload) => {
+      if (!isMounted) return;
+      const { eventType, new: newRow } = payload;
+      if (eventType === 'UPDATE' && newRow) {
+        const mapped = mapShopFromDb(newRow);
+        if (mapped) {
+          setShops((prev) =>
+            prev.map((s) => (s.id === mapped.id ? { ...s, ...mapped } : s))
+          );
+        }
+      }
+      getShops(filters)
+        .then((data) => {
+          if (isMounted) setShops(data);
+        })
+        .catch(() => {});
+    });
+
+    const unbindFocus = onVisibilityOrFocus(() => {
+      if (isMounted) {
+        getShops(filters)
+          .then((data) => {
+            if (isMounted) setShops(data);
+          })
+          .catch(() => {});
+      }
+    });
+
     return () => {
       isMounted = false;
+      unsubscribe();
+      unbindFocus();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterKey]);
 
-  return { shops, loading, error };
+  return { shops, loading, error, refresh };
 }
 
 export function useShop(shopId) {
@@ -123,8 +173,19 @@ export function useShop(shopId) {
           setLoading(false);
         }
       });
+
+    const unsubscribe = subscribeToTable('shops', (payload) => {
+      if (!isMounted) return;
+      const { new: newRow } = payload;
+      if (newRow?.id === shopId) {
+        const mapped = mapShopFromDb(newRow);
+        if (mapped) setShop(mapped);
+      }
+    });
+
     return () => {
       isMounted = false;
+      unsubscribe();
     };
   }, [shopId]);
 
@@ -137,6 +198,20 @@ export function useProducts(filters = {}) {
   const [error, setError] = useState(null);
 
   const filterKey = JSON.stringify(filters);
+
+  const refresh = useCallback(() => {
+    return getProducts(filters)
+      .then((data) => {
+        setProducts(data);
+        setLoading(false);
+        return data;
+      })
+      .catch((err) => {
+        setError(err);
+        setLoading(false);
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterKey]);
 
   useEffect(() => {
     let isMounted = true;
@@ -153,19 +228,92 @@ export function useProducts(filters = {}) {
           setLoading(false);
         }
       });
+
+    // 1. Instant Realtime Subscription to Supabase 'products' table
+    const unsubscribe = subscribeToTable('products', (payload) => {
+      if (!isMounted) return;
+      const { eventType, new: newRow, old: oldRow } = payload;
+
+      if (eventType === 'DELETE') {
+        const deletedId = oldRow?.id;
+        if (deletedId) {
+          // Immediately eliminate deleted product from view without waiting for roundtrip
+          setProducts((prev) => prev.filter((p) => p.id !== deletedId));
+        }
+        // Background re-fetch to ensure counts and filters stay perfectly calibrated
+        getProducts(filters)
+          .then((data) => {
+            if (isMounted) setProducts(data);
+          })
+          .catch(() => {});
+      } else if (eventType === 'INSERT') {
+        const mapped = mapProductFromDb(newRow);
+        if (mapped) {
+          setProducts((prev) => {
+            if (prev.some((p) => p.id === mapped.id)) return prev;
+            return [mapped, ...prev];
+          });
+        }
+        getProducts(filters)
+          .then((data) => {
+            if (isMounted) setProducts(data);
+          })
+          .catch(() => {});
+      } else if (eventType === 'UPDATE') {
+        const mapped = mapProductFromDb(newRow);
+        if (mapped) {
+          setProducts((prev) =>
+            prev.map((p) => (p.id === mapped.id ? { ...p, ...mapped } : p))
+          );
+        }
+        getProducts(filters)
+          .then((data) => {
+            if (isMounted) setProducts(data);
+          })
+          .catch(() => {});
+      }
+    });
+
+    // 2. Revalidate when tab becomes active / focused again (e.g., wake from sleep or tab switch)
+    const unbindFocus = onVisibilityOrFocus(() => {
+      if (isMounted) {
+        getProducts(filters)
+          .then((data) => {
+            if (isMounted) setProducts(data);
+          })
+          .catch(() => {});
+      }
+    });
+
     return () => {
       isMounted = false;
+      unsubscribe();
+      unbindFocus();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterKey]);
 
-  return { products, loading, error };
+  return { products, loading, error, refresh };
 }
 
 export function useProduct(productId) {
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(Boolean(productId));
   const [error, setError] = useState(null);
+
+  const refresh = useCallback(() => {
+    if (!productId) return Promise.resolve(null);
+    return getProductById(productId)
+      .then((data) => {
+        setProduct(data);
+        setLoading(false);
+        return data;
+      })
+      .catch((err) => {
+        setError(err);
+        setLoading(false);
+      });
+  }, [productId]);
 
   useEffect(() => {
     if (!productId) return;
@@ -183,12 +331,44 @@ export function useProduct(productId) {
           setLoading(false);
         }
       });
+
+    // Realtime listener for this specific product
+    const unsubscribe = subscribeToTable('products', (payload) => {
+      if (!isMounted) return;
+      const { eventType, new: newRow, old: oldRow } = payload;
+
+      if (eventType === 'DELETE') {
+        if (oldRow?.id === productId) {
+          // Instant reactivity when deleted by shopkeeper
+          setProduct(null);
+          setError(new Error('Product was deleted by the store owner'));
+        }
+      } else if (eventType === 'UPDATE') {
+        if (newRow?.id === productId) {
+          const mapped = mapProductFromDb(newRow);
+          setProduct(mapped);
+        }
+      }
+    });
+
+    const unbindFocus = onVisibilityOrFocus(() => {
+      if (isMounted && productId) {
+        getProductById(productId)
+          .then((data) => {
+            if (isMounted) setProduct(data);
+          })
+          .catch(() => {});
+      }
+    });
+
     return () => {
       isMounted = false;
+      unsubscribe();
+      unbindFocus();
     };
   }, [productId]);
 
-  return { product, loading, error };
+  return { product, loading, error, refresh };
 }
 
 export function useOrdersData(userId) {
@@ -223,8 +403,41 @@ export function useOrdersData(userId) {
           setLoading(false);
         }
       });
+
+    // Realtime updates for customer order status changes
+    const unsubscribe = subscribeToTable('orders', (payload) => {
+      if (!isMounted) return;
+      const { eventType, new: newRow } = payload;
+      if (eventType === 'INSERT' && newRow) {
+        const mapped = mapOrderFromDb(newRow);
+        setOrders((prev) => [mapped, ...prev.filter((o) => (o.orderId || o.id) !== mapped.orderId)]);
+      } else if (eventType === 'UPDATE' && newRow) {
+        const mapped = mapOrderFromDb(newRow);
+        setOrders((prev) =>
+          prev.map((o) => ((o.orderId || o.id) === mapped.orderId ? { ...o, ...mapped } : o))
+        );
+      }
+      getOrders(userId)
+        .then((data) => {
+          if (isMounted) setOrders(data);
+        })
+        .catch(() => {});
+    });
+
+    const unbindFocus = onVisibilityOrFocus(() => {
+      if (isMounted) {
+        getOrders(userId)
+          .then((data) => {
+            if (isMounted) setOrders(data);
+          })
+          .catch(() => {});
+      }
+    });
+
     return () => {
       isMounted = false;
+      unsubscribe();
+      unbindFocus();
     };
   }, [userId]);
 
@@ -303,8 +516,33 @@ export function useNotifications(userId) {
           setLoading(false);
         }
       });
+
+    // Realtime notification push
+    const unsubscribe = subscribeToTable('notifications', (payload) => {
+      if (!isMounted) return;
+      if (payload.eventType === 'INSERT' && payload.new) {
+        const n = payload.new;
+        const newNotif = {
+          id: n.id,
+          title: n.title,
+          message: n.message,
+          timestamp: n.timestamp || 'Just now',
+          read: Boolean(n.read),
+          orderId: n.order_id,
+          shopId: n.shop_id
+        };
+        setNotifications((prev) => [newNotif, ...prev.filter((item) => item.id !== newNotif.id)]);
+      }
+      getNotifications(userId)
+        .then((data) => {
+          if (isMounted) setNotifications(data);
+        })
+        .catch(() => {});
+    });
+
     return () => {
       isMounted = false;
+      unsubscribe();
     };
   }, [userId]);
 

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { subscribeToTable } from "@/lib/supabase/realtime";
 
 const FavoritesContext = createContext(null);
 
@@ -35,6 +36,26 @@ export function FavoritesProvider({ children }) {
       console.error(e);
     }
   }, [favoriteShopIds, favoriteProductIds]);
+
+  // Real-time pruning of deleted favorites
+  useEffect(() => {
+    const unsubProds = subscribeToTable("products", (payload) => {
+      if (payload.eventType === "DELETE" && payload.old?.id) {
+        setFavoriteProductIds((prev) => prev.filter((id) => id !== payload.old.id));
+      }
+    });
+
+    const unsubShops = subscribeToTable("shops", (payload) => {
+      if (payload.eventType === "DELETE" && payload.old?.id) {
+        setFavoriteShopIds((prev) => prev.filter((id) => id !== payload.old.id));
+      }
+    });
+
+    return () => {
+      unsubProds();
+      unsubShops();
+    };
+  }, []);
 
   const toggleFavoriteShop = (shopId) => {
     setFavoriteShopIds((prev) =>

@@ -48,7 +48,12 @@ export default function FilterPanel({
                 : "hover:bg-neutral-100 text-neutral-700"
             }`}
           >
-            <span>All Categories</span>
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-[10px] font-bold">
+                ✦
+              </div>
+              <span>All Categories</span>
+            </div>
             {selectedCategory === "all" && <Check className="w-3.5 h-3.5 text-emerald-600" />}
           </button>
           {catList.map((cat) => (
@@ -61,8 +66,18 @@ export default function FilterPanel({
                   : "hover:bg-neutral-100 text-neutral-700"
               }`}
             >
-              <span>{cat.name}</span>
-              {selectedCategory === cat.id && <Check className="w-3.5 h-3.5 text-emerald-600" />}
+              <div className="flex items-center gap-2 min-w-0">
+                {cat.image ? (
+                  <img
+                    src={cat.image}
+                    alt={cat.name}
+                    className="w-5 h-5 rounded-full object-cover flex-shrink-0 border border-neutral-200"
+                    loading="lazy"
+                  />
+                ) : null}
+                <span className="truncate">{cat.name}</span>
+              </div>
+              {selectedCategory === cat.id && <Check className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />}
             </button>
           ))}
         </div>

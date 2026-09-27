@@ -15,7 +15,7 @@ import {
   User,
   PackageCheck,
   ChevronDown,
-  LogIn
+  LogIn,
 } from "lucide-react";
 
 export default function Navbar() {
@@ -43,7 +43,7 @@ export default function Navbar() {
           {/* Left: Brand Logo */}
           <NextLink href="/" className="flex items-center py-1 flex-shrink-0">
             <img
-              src="/brand-logo.png"
+              src="https://rchkrkbuuwxhplfqhhao.supabase.co/storage/v1/object/public/localstore-assets/brand/brand-logo.png"
               alt="LocalStore"
               className="h-8 sm:h-9 w-auto object-contain"
             />
@@ -82,7 +82,7 @@ export default function Navbar() {
           {/* Logo */}
           <NextLink href="/" className="flex items-center flex-shrink-0 group py-1">
             <img
-              src="/brand-logo.png"
+              src="https://rchkrkbuuwxhplfqhhao.supabase.co/storage/v1/object/public/localstore-assets/brand/brand-logo.png"
               alt="LocalStore - Shop Local. Shop Online."
               className="h-9 sm:h-11 w-auto object-contain transition-transform group-hover:scale-[1.02]"
             />
@@ -94,7 +94,7 @@ export default function Navbar() {
           </div>
 
           {/* Right Navigation Items */}
-          <div className="flex items-center gap-2 sm:gap-4">
+          <div className="flex items-center gap-2 sm:gap-3">
             {/* Location Selector */}
             <button
               onClick={openModal}
@@ -105,11 +105,11 @@ export default function Navbar() {
                 <MapPin className={`w-4 h-4 ${isDetecting ? "animate-bounce text-emerald-500" : ""}`} />
               </div>
               <div className="max-w-[100px] sm:max-w-[140px] truncate">
-                <div className="text-[10px] text-neutral-400 font-medium uppercase leading-tight">
-                  {isDetecting ? "Detecting..." : "Location"}
+                <div className="text-[10px] text-neutral-400 font-medium uppercase leading-tight truncate">
+                  {city || "Delivery Area"}
                 </div>
                 <div className="font-semibold text-neutral-900 truncate flex items-center gap-1">
-                  <span>{isDetecting ? "Finding area..." : (currentLocality?.name || "Select Area")}</span>
+                  <span>{currentLocality?.name || "Select Locality"}</span>
                   <ChevronDown className="w-3 h-3 text-neutral-400 group-hover:text-neutral-700 flex-shrink-0" />
                 </div>
               </div>

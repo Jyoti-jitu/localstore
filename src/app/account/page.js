@@ -7,6 +7,7 @@ import { useOrders } from "@/context/OrdersContext";
 import { useFavorites } from "@/context/FavoritesContext";
 import { useToast } from "@/context/ToastContext";
 import { useAuth } from "@/context/AuthContext";
+import { uploadStorageAsset } from "@/lib/supabase/db";
 import Modal from "@/components/Modal";
 import {
   User,
@@ -31,7 +32,8 @@ import {
   Store,
   CheckCircle2,
   Sparkles,
-  LogIn
+  LogIn,
+  Banknote
 } from "lucide-react";
 
 const AVATAR_PRESETS = [
@@ -55,7 +57,6 @@ export default function AccountPage() {
     loading: authLoading,
     signOut,
     openAuthModal,
-    loginAsDemoUser,
     updateProfilePhoto,
     removeProfilePhoto
   } = useAuth();
@@ -64,7 +65,7 @@ export default function AccountPage() {
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
   const fileInputRef = useRef(null);
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -78,14 +79,26 @@ export default function AccountPage() {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      const dataUrl = reader.result;
-      updateProfilePhoto(dataUrl);
-      setIsPhotoModalOpen(false);
-      showToast("Profile photo updated successfully!");
-    };
-    reader.readAsDataURL(file);
+    showToast("Uploading to Supabase Storage...");
+    try {
+      const res = await uploadStorageAsset(file, "avatars");
+      if (res.success && res.url) {
+        updateProfilePhoto(res.url);
+        setIsPhotoModalOpen(false);
+        showToast("Profile photo uploaded to Supabase Storage!");
+      } else {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const dataUrl = reader.result;
+          updateProfilePhoto(dataUrl);
+          setIsPhotoModalOpen(false);
+          showToast("Profile photo updated successfully!");
+        };
+        reader.readAsDataURL(file);
+      }
+    } catch (err) {
+      console.error("Avatar upload error:", err);
+    }
   };
 
   const user = {
@@ -101,13 +114,6 @@ export default function AccountPage() {
   };
 
   const menuItems = [
-    {
-      label: "Become a Shopkeeper",
-      href: "/shopkeeper",
-      icon: Store,
-      badge: "Start Selling",
-      isHighlight: true
-    },
     { label: "My Orders", href: "/orders", icon: PackageCheck, badge: `${orders.length} orders` },
     { label: "Saved Addresses", href: "/addresses", icon: MapPin, badge: "3 saved" },
     { label: "Favorite Shops", href: "/favorites", icon: Store, badge: `${favoriteShopIds.length}` },
@@ -151,33 +157,13 @@ export default function AccountPage() {
             </button>
           </div>
 
-          <div className="relative flex items-center justify-center py-1">
-            <div className="border-t border-neutral-200 w-full" />
-            <span className="bg-white px-3 text-[11px] font-bold text-neutral-400 uppercase tracking-wider relative">
-              Or Quick Test
-            </span>
-          </div>
-
-          <button
-            onClick={async () => {
-              await loginAsDemoUser();
-              showToast("Logged in as Rahul Mohapatra (Demo User).");
-            }}
-            className="w-full py-2.5 px-3 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 group"
-          >
-            <Sparkles className="w-4 h-4 text-emerald-600 group-hover:scale-110 transition-transform" />
-            <span>⚡ Quick 1-Click Demo Login (Rahul Mohapatra)</span>
-          </button>
-
-          <div className="pt-3 border-t border-neutral-100 flex flex-col items-center gap-1.5 text-center">
-            <p className="text-xs text-neutral-500">Are you a merchant or store owner?</p>
-            <NextLink
-              href="/shopkeeper"
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 hover:text-emerald-800 hover:underline"
+          <div className="pt-2 text-center">
+            <button
+              onClick={() => openAuthModal("forgot", "/account")}
+              className="text-xs font-semibold text-emerald-700 hover:text-emerald-800 hover:underline transition-colors"
             >
-              <Store className="w-3.5 h-3.5" />
-              <span>Become a Shopkeeper on LocalHub →</span>
-            </NextLink>
+              Forgot your password? Recover your account
+            </button>
           </div>
         </div>
       </div>
@@ -271,15 +257,6 @@ export default function AccountPage() {
             </div>
 
             <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap sm:flex-nowrap pt-2 sm:pt-0 border-t sm:border-t-0 border-neutral-100">
-              <NextLink
-                href="/shopkeeper"
-                id="become-shopkeeper-btn"
-                className="inline-flex items-center gap-2 px-3.5 py-2 sm:px-4 sm:py-2.5 bg-gradient-to-r from-emerald-600 via-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold rounded-xl text-xs sm:text-sm shadow-xs hover:shadow transition-all group flex-shrink-0"
-              >
-                <Store className="w-4 h-4 text-emerald-100 group-hover:scale-110 transition-transform" />
-                <span>Become a Shopkeeper</span>
-              </NextLink>
-
               <button
                 type="button"
                 onClick={() => setIsPhotoModalOpen(true)}
@@ -390,34 +367,6 @@ export default function AccountPage() {
 
           {/* Right Area: Overview Highlights */}
           <div className="md:col-span-7 lg:col-span-8 space-y-4 sm:space-y-6">
-            {/* Become a Shopkeeper Feature Card */}
-            <div className="bg-gradient-to-br from-emerald-800 via-teal-800 to-slate-900 rounded-2xl sm:rounded-3xl p-5 sm:p-6 text-white shadow-xs relative overflow-hidden">
-              <div className="absolute -right-8 -bottom-8 w-40 h-40 bg-emerald-400/10 rounded-full blur-2xl pointer-events-none" />
-              <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="space-y-1.5 max-w-md">
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/15 backdrop-blur-xs text-[10px] font-bold text-emerald-200 uppercase tracking-wider">
-                    <Sparkles className="w-3 h-3 text-amber-300" />
-                    <span>Sell on LocalHub</span>
-                  </div>
-                  <h2 className="text-base sm:text-lg font-bold tracking-tight text-white">
-                    Become a Shopkeeper
-                  </h2>
-                  <p className="text-xs text-emerald-100/90 leading-relaxed">
-                    Take your offline store online. Reach nearby customers, manage your inventory in minutes, and increase your local revenue.
-                  </p>
-                </div>
-
-                <NextLink
-                  href="/shopkeeper"
-                  className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white hover:bg-neutral-100 text-emerald-900 font-extrabold rounded-xl text-xs sm:text-sm shadow-sm transition-all flex-shrink-0 group"
-                >
-                  <Store className="w-4 h-4 text-emerald-700 group-hover:scale-110 transition-transform" />
-                  <span>Start Selling</span>
-                  <ChevronRight className="w-4 h-4 text-emerald-700 group-hover:translate-x-0.5 transition-transform" />
-                </NextLink>
-              </div>
-            </div>
-
             {/* Latest Order Card */}
             {orders.length > 0 && (
               <div className="bg-white rounded-2xl sm:rounded-3xl border border-neutral-200/90 p-4 sm:p-5 shadow-xs">
@@ -450,39 +399,34 @@ export default function AccountPage() {
               </div>
             )}
 
-            {/* Saved Payment Methods preview */}
+            {/* Default Payment Mode preview */}
             <div className="bg-white rounded-3xl border border-neutral-200/90 p-5 sm:p-6 shadow-xs space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-neutral-100">
                 <h3 className="font-bold text-sm text-neutral-900 flex items-center gap-2">
-                  <CreditCard className="w-4 h-4 text-emerald-600" />
-                  <span>Saved Payment Options</span>
+                  <Banknote className="w-4 h-4 text-emerald-600" />
+                  <span>Default Payment Mode</span>
                 </h3>
-                <span className="text-[11px] text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full">
-                  Instant Checkout Active
+                <span className="text-[11px] text-emerald-700 font-semibold bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200/60">
+                  100% Doorstep COD
                 </span>
               </div>
 
               <div className="space-y-2.5 text-xs text-neutral-700">
-                <div className="p-3 rounded-xl border border-neutral-200 flex items-center justify-between">
+                <div className="p-3.5 rounded-2xl border border-emerald-200 bg-emerald-50/50 flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-emerald-50 text-emerald-700 font-bold">UPI</div>
+                    <div className="p-2.5 rounded-xl bg-emerald-100 text-emerald-700 font-bold">
+                      <Banknote className="w-5 h-5 text-emerald-700" />
+                    </div>
                     <div>
-                      <div className="font-semibold text-neutral-900">Google Pay (Primary)</div>
-                      <div className="text-[11px] text-neutral-400">rahul@oksbi</div>
+                      <div className="font-bold text-neutral-900">Cash on Delivery (COD)</div>
+                      <div className="text-[11px] text-neutral-500">Pay cash or scan QR code at doorstep upon delivery</div>
                     </div>
                   </div>
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
                 </div>
 
-                <div className="p-3 rounded-xl border border-neutral-200 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-blue-50 text-blue-700 font-bold">VISA</div>
-                    <div>
-                      <div className="font-semibold text-neutral-900">HDFC Bank Debit Card</div>
-                      <div className="text-[11px] text-neutral-400">•••• •••• •••• 0029 (Exp 08/29)</div>
-                    </div>
-                  </div>
-                  <span className="text-[11px] text-neutral-400">Saved</span>
+                <div className="text-[11px] text-neutral-500 bg-neutral-50 p-2.5 rounded-xl border border-neutral-200/60">
+                  Online UPI and card prepayments are disabled. All neighborhood orders are safely collected on delivery at your doorstep.
                 </div>
               </div>
             </div>

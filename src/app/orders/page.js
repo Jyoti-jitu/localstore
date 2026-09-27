@@ -5,10 +5,11 @@ import NextLink from "next/link";
 import { useOrders } from "@/context/OrdersContext";
 import OrderCard from "@/components/OrderCard";
 import EmptyState from "@/components/EmptyState";
+import { OrderSkeleton } from "@/components/LoadingSkeleton";
 import { PackageCheck, Clock, CheckCircle2, XCircle, ChevronLeft } from "lucide-react";
 
 export default function OrdersPage() {
-  const { orders } = useOrders();
+  const { orders, loading } = useOrders();
   const [activeTab, setActiveTab] = useState("active"); // 'active' | 'completed' | 'cancelled'
 
   const activeOrders = useMemo(
@@ -98,7 +99,13 @@ export default function OrdersPage() {
         </div>
 
         {/* Orders list or empty state */}
-        {displayedOrders.length === 0 ? (
+        {loading ? (
+          <div className="space-y-4">
+            {Array.from({ length: 4 }).map((_, idx) => (
+              <OrderSkeleton key={idx} />
+            ))}
+          </div>
+        ) : displayedOrders.length === 0 ? (
           <EmptyState
             type="orders"
             title={`No ${activeTab} orders`}

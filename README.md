@@ -1,36 +1,34 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# LocalStore — Customer Marketplace Application
 
-## Getting Started
+This is the **Customer Marketplace Application** for LocalStore. It provides the customer-facing shopping experience, allowing neighborhood residents to discover local stores, browse catalogs, add items to cart, checkout, and track orders in real-time.
 
-First, run the development server:
+---
+
+## 🛍️ Customer Features & Routes
+
+- **`http://localhost:3000/`** — Hyperlocal Storefront & Product Discovery
+  - Hero banner with delivery location detection
+  - Category filters (Grocery, Dairy, Bakery, Fruits, Pharmacy, Electronics)
+  - Flash deals & trending products
+  - Neighborhood verified stores carousel
+- **`http://localhost:3000/shop/[shopId]`** — Neighborhood Storefront
+  - Store hours, ratings, distance, and categories
+  - Direct store inventory with instant add-to-cart
+- **`http://localhost:3000/product/[productId]`** — Product Details
+  - Image gallery, unit sizes, price comparisons, reviews, and store info
+- **`http://localhost:3000/search` & `/explore`** — Instant Search & Filtering
+- **`http://localhost:3000/cart`** — Multi-store Shopping Cart & Price Breakdown
+- **`http://localhost:3000/checkout`** — Customer Delivery Address & Payment (UPI, COD, Card)
+- **`http://localhost:3000/order-success`** — Confetti & Confirmation
+- **`http://localhost:3000/orders` & `/orders/[orderId]`** — Live 5-Stage Order Tracking
+- **`http://localhost:3000/account`** — Customer Profile, Saved Addresses (`/addresses`), Wishlist (`/favorites`), and Help (`/help`)
+
+---
+
+## 🏃‍♂️ Running Locally
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Runs on [http://localhost:3000](http://localhost:3000).

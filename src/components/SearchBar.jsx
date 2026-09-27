@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { Search, X, Clock, TrendingUp, Store } from "lucide-react";
 import { useShops, useSearchSuggestions } from "@/hooks/useSupabaseData";
 
@@ -13,6 +13,7 @@ export default function SearchBar({
   variant = "default"
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [query, setQuery] = useState(initialQuery);
   const [prevInitialQuery, setPrevInitialQuery] = useState(initialQuery);
   const [isFocused, setIsFocused] = useState(false);
@@ -26,6 +27,17 @@ export default function SearchBar({
     setQuery(initialQuery);
   }
 
+  // Sync with browser URL params if on search page
+  useEffect(() => {
+    if (typeof window !== "undefined" && pathname === "/search") {
+      const params = new URLSearchParams(window.location.search);
+      const urlQ = params.get("q") || "";
+      if (urlQ !== query) {
+        setQuery(urlQ);
+      }
+    }
+  }, [pathname]);
+
   useEffect(() => {
     function handleClickOutside(e) {
       if (containerRef.current && !containerRef.current.contains(e.target)) {
@@ -36,16 +48,43 @@ export default function SearchBar({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const handleChange = (newVal) => {
+    setQuery(newVal);
+    // Live-sync when already on the search page so typing and backspace update results in real time
+    if (pathname === "/search") {
+      if (!newVal.trim()) {
+        router.replace("/search", { scroll: false });
+      } else {
+        router.replace(`/search?q=${encodeURIComponent(newVal)}`, { scroll: false });
+      }
+    }
+  };
+
+  const handleClear = (e) => {
+    if (e) e.stopPropagation();
+    setQuery("");
+    if (pathname === "/search") {
+      router.replace("/search", { scroll: false });
+    }
+  };
+
   const handleSearch = (term) => {
     const q = (term !== undefined ? term : query).trim();
-    if (!q) return;
     setIsFocused(false);
+    if (!q) {
+      router.push("/search");
+      return;
+    }
     router.push(`/search?q=${encodeURIComponent(q)}`);
   };
 
   const handleKeyDown = (e) => {
     if (e.key === "Enter") {
       handleSearch();
+    } else if (e.key === "Escape") {
+      setIsFocused(false);
+    } else if (e.key === "Backspace" && !query && pathname === "/search") {
+      router.back();
     }
   };
 
@@ -87,7 +126,7 @@ export default function SearchBar({
         <input
           type="text"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => handleChange(e.target.value)}
           onFocus={() => setIsFocused(true)}
           onKeyDown={handleKeyDown}
           autoFocus={autoFocus}
@@ -99,9 +138,7 @@ export default function SearchBar({
         {query && (
           <button
             type="button"
-            onClick={() => {
-              setQuery("");
-            }}
+            onClick={handleClear}
             className="p-1.5 mr-1 text-neutral-400 hover:text-neutral-600 rounded-full"
             aria-label="Clear search input"
           >

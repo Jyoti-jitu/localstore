@@ -1,7 +1,18 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { createClient } from "@/lib/supabase/client";
+import {
+  loginWithBackend,
+  registerWithBackend,
+  sendBackendOtp,
+  verifyBackendOtp,
+  fetchCurrentBackendUser,
+  logoutWithBackend,
+  requestPasswordReset,
+  resetPasswordWithBackend,
+  sendRegistrationOtp,
+  verifyRegistrationOtp,
+} from "@/lib/authApi";
 
 const AuthContext = createContext();
 
@@ -14,57 +25,77 @@ export function AuthProvider({ children }) {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState("signin"); // "signin" | "register"
   const [authRedirectUrl, setAuthRedirectUrl] = useState(null);
-
-  const supabase = createClient();
+  const [customAvatar, setCustomAvatar] = useState(null);
 
   useEffect(() => {
     let mounted = true;
 
-    // Check local demo persistence or default active demo profile
-    if (typeof window !== "undefined") {
+    async function initAuth() {
+      if (typeof window === "undefined") return;
+
       const isSignedOut = localStorage.getItem("localstore_signed_out");
+      const storedToken = localStorage.getItem("localstore_auth_token");
+      const savedAvatar = localStorage.getItem("localstore_user_avatar");
+      if (savedAvatar) setCustomAvatar(savedAvatar);
+
+      // If user has an active backend JWT token
+      if (storedToken && !isSignedOut) {
+        const remoteUser = await fetchCurrentBackendUser(storedToken);
+        if (mounted && remoteUser) {
+          setUser(remoteUser);
+          setSession({ access_token: storedToken, user: remoteUser });
+          setLoading(false);
+          return;
+        }
+      }
+
+      // Check if there was a saved cached user profile
       if (!isSignedOut) {
+        const cachedUserStr = localStorage.getItem("localstore_user");
+        if (cachedUserStr) {
+          try {
+            const cachedUser = JSON.parse(cachedUserStr);
+            if (mounted) {
+              setUser(cachedUser);
+              setSession({ access_token: storedToken || "jwt-session", user: cachedUser });
+              setLoading(false);
+              return;
+            }
+          } catch {
+            // ignore JSON parse error
+          }
+        }
+
+        // Default demo customer profile for seamless first-run experience
         const defaultUser = {
-          id: "demo-user-rahul-01",
+          id: "user-cust-001",
           email: "rahul.mohapatra@example.com",
+          full_name: "Rahul Mohapatra",
+          phone: "+91 98610 54321",
+          role: "customer",
+          shop_id: null,
           user_metadata: {
             full_name: "Rahul Mohapatra",
             phone: "+91 98610 54321",
+            role: "customer",
+            shop_id: null,
           },
         };
-        setUser(defaultUser);
-        setSession({ user: defaultUser, access_token: "demo-token" });
+        if (mounted) {
+          setUser(defaultUser);
+          setSession({ access_token: "demo-jwt-token", user: defaultUser });
+        }
+      }
+
+      if (mounted) {
         setLoading(false);
       }
     }
 
-    // 1. Initial session load
-    supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
-      if (mounted) {
-        if (initialSession) {
-          setSession(initialSession);
-          setUser(initialSession?.user || null);
-        }
-        setLoading(false);
-      }
-    });
-
-    // 2. Real-time auth changes listener
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, currentSession) => {
-      if (mounted) {
-        if (currentSession) {
-          setSession(currentSession);
-          setUser(currentSession?.user || null);
-        }
-        setLoading(false);
-      }
-    });
+    initAuth();
 
     return () => {
       mounted = false;
-      subscription?.unsubscribe();
     };
   }, []);
 
@@ -81,61 +112,98 @@ export function AuthProvider({ children }) {
 
   const signIn = async ({ email, password }) => {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      if (error) throw error;
-      return { success: true, user: data.user, session: data.session };
+      const res = await loginWithBackend({ email, password });
+      if (!res.success) {
+        return { success: false, error: res.error || "Invalid credentials." };
+      }
+
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("localstore_signed_out");
+        if (res.token) localStorage.setItem("localstore_auth_token", res.token);
+        if (res.user) localStorage.setItem("localstore_user", JSON.stringify(res.user));
+      }
+
+      setUser(res.user);
+      setSession(res.session || { access_token: res.token, user: res.user });
+      return { success: true, user: res.user, session: res.session };
     } catch (err) {
-      return { success: false, error: err.message || "Failed to sign in" };
+      return { success: false, error: err.message || "Failed to sign in via backend." };
     }
   };
 
-  const signUp = async ({ email, password, fullName, phone }) => {
+  const signUp = async ({ email, password, fullName, phone, role = "customer", shop_id = null }) => {
     try {
-      const { data, error } = await supabase.auth.signUp({
+      const res = await registerWithBackend({
         email,
         password,
-        options: {
-          data: {
-            full_name: fullName,
-            phone: phone,
-          },
-        },
+        fullName,
+        phone,
+        role,
+        shop_id,
       });
-      if (error) throw error;
 
-      // In case session was not returned immediately, sign in right away
-      if (!data.session && data.user) {
-        const signInRes = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-        if (signInRes.data?.session) {
-          return { success: true, user: signInRes.data.user, session: signInRes.data.session };
-        }
+      if (!res.success) {
+        return { success: false, error: res.error || "Failed to register account." };
       }
 
-      return { success: true, user: data.user, session: data.session };
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("localstore_signed_out");
+        if (res.token) localStorage.setItem("localstore_auth_token", res.token);
+        if (res.user) localStorage.setItem("localstore_user", JSON.stringify(res.user));
+      }
+
+      setUser(res.user);
+      setSession(res.session || { access_token: res.token, user: res.user });
+      return { success: true, user: res.user, session: res.session };
     } catch (err) {
-      return { success: false, error: err.message || "Failed to create account" };
+      return { success: false, error: err.message || "Failed to create account via backend." };
+    }
+  };
+
+  const sendOtp = async ({ phone }) => {
+    return await sendBackendOtp({ phone });
+  };
+
+  const verifyOtp = async ({ phone, otp }) => {
+    try {
+      const res = await verifyBackendOtp({ phone, otp });
+      if (!res.success) {
+        return { success: false, error: res.error || "Invalid verification code." };
+      }
+
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("localstore_signed_out");
+        if (res.token) localStorage.setItem("localstore_auth_token", res.token);
+        if (res.user) localStorage.setItem("localstore_user", JSON.stringify(res.user));
+      }
+
+      setUser(res.user);
+      setSession(res.session || { access_token: res.token, user: res.user });
+      return { success: true, user: res.user, session: res.session };
+    } catch (err) {
+      return { success: false, error: err.message || "OTP verification failed." };
     }
   };
 
   const signOut = async () => {
     try {
+      const token = session?.access_token || (typeof window !== "undefined" ? localStorage.getItem("localstore_auth_token") : null);
+      await logoutWithBackend(token);
+
       if (typeof window !== "undefined") {
         localStorage.setItem("localstore_signed_out", "true");
+        localStorage.removeItem("localstore_auth_token");
+        localStorage.removeItem("localstore_user");
         localStorage.removeItem("localstore_demo_user");
       }
-      await supabase.auth.signOut();
       setUser(null);
       setSession(null);
       return { success: true };
     } catch (err) {
       if (typeof window !== "undefined") {
         localStorage.setItem("localstore_signed_out", "true");
+        localStorage.removeItem("localstore_auth_token");
+        localStorage.removeItem("localstore_user");
         localStorage.removeItem("localstore_demo_user");
       }
       setUser(null);
@@ -144,39 +212,55 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // Quick 1-click Demo Login for instant testing
-  const loginAsDemoUser = async () => {
-    const mockUser = {
-      id: "demo-user-rahul-01",
-      email: "rahul.mohapatra@example.com",
-      user_metadata: {
-        full_name: "Rahul Mohapatra",
-        phone: "+91 98610 54321",
-      },
-    };
-    try {
-      if (typeof window !== "undefined") {
-        localStorage.removeItem("localstore_signed_out");
-        localStorage.setItem("localstore_demo_user", JSON.stringify(mockUser));
-      }
-      setUser(mockUser);
-      setSession({ user: mockUser, access_token: "demo-token" });
-      return { success: true, user: mockUser };
-    } catch {
-      setUser(mockUser);
-      setSession({ user: mockUser, access_token: "demo-token" });
-      return { success: true, user: mockUser };
-    }
+  const forgotPassword = async ({ email }) => {
+    return await requestPasswordReset({ email });
   };
 
-  const [customAvatar, setCustomAvatar] = useState(null);
+  const resetPassword = async ({ email, otp, newPassword }) => {
+    return await resetPasswordWithBackend({ email, otp, newPassword });
+  };
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const savedAvatar = localStorage.getItem("localstore_user_avatar");
-      if (savedAvatar) setCustomAvatar(savedAvatar);
+  const sendRegistrationEmailOtp = async ({ email, fullName }) => {
+    return await sendRegistrationOtp({ email, fullName });
+  };
+
+  const verifyRegistrationOtpAndCreateAccount = async ({
+    email,
+    otp,
+    password,
+    fullName,
+    phone,
+    role = "customer",
+    shop_id = null,
+  }) => {
+    try {
+      const res = await verifyRegistrationOtp({
+        email,
+        otp,
+        password,
+        fullName,
+        phone,
+        role,
+        shop_id,
+      });
+
+      if (!res.success) {
+        return { success: false, error: res.error || "Verification failed." };
+      }
+
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("localstore_signed_out");
+        if (res.token) localStorage.setItem("localstore_auth_token", res.token);
+        if (res.user) localStorage.setItem("localstore_user", JSON.stringify(res.user));
+      }
+
+      setUser(res.user);
+      setSession(res.session || { access_token: res.token, user: res.user });
+      return { success: true, user: res.user, session: res.session };
+    } catch (err) {
+      return { success: false, error: err.message || "Failed to create account." };
     }
-  }, []);
+  };
 
   const updateProfilePhoto = (photoUrl) => {
     setCustomAvatar(photoUrl);
@@ -190,6 +274,7 @@ export function AuthProvider({ children }) {
     if (user) {
       const updatedUser = {
         ...user,
+        avatar: photoUrl || "",
         user_metadata: {
           ...(user.user_metadata || {}),
           avatar_url: photoUrl || "",
@@ -197,7 +282,7 @@ export function AuthProvider({ children }) {
       };
       setUser(updatedUser);
       if (typeof window !== "undefined") {
-        localStorage.setItem("localstore_demo_user", JSON.stringify(updatedUser));
+        localStorage.setItem("localstore_user", JSON.stringify(updatedUser));
       }
     }
   };
@@ -209,11 +294,11 @@ export function AuthProvider({ children }) {
   // Computed profile helpers
   const profile = {
     id: user?.id,
-    name: user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Shopper",
+    name: user?.full_name || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Shopper",
     email: user?.email || "",
-    phone: user?.user_metadata?.phone || "",
-    avatar: customAvatar || user?.user_metadata?.avatar_url || "",
-    initials: (user?.user_metadata?.full_name || user?.email || "RM")
+    phone: user?.phone || user?.user_metadata?.phone || "",
+    avatar: customAvatar || user?.avatar || user?.user_metadata?.avatar_url || "",
+    initials: (user?.full_name || user?.user_metadata?.full_name || user?.email || "RM")
       .split(" ")
       .map((n) => n[0])
       .join("")
@@ -232,7 +317,12 @@ export function AuthProvider({ children }) {
         signIn,
         signUp,
         signOut,
-        loginAsDemoUser,
+        sendOtp,
+        verifyOtp,
+        forgotPassword,
+        resetPassword,
+        sendRegistrationEmailOtp,
+        verifyRegistrationOtpAndCreateAccount,
         updateProfilePhoto,
         removeProfilePhoto,
         isAuthModalOpen,

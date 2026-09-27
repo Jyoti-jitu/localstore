@@ -2,7 +2,7 @@
 
 import React from "react";
 import NextLink from "next/link";
-import { Store, MapPin, Heart } from "lucide-react";
+import { Store, MapPin, Heart, TrendingUp } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useFavorites } from "@/context/FavoritesContext";
 import { useToast } from "@/context/ToastContext";
@@ -53,10 +53,14 @@ export default function ProductCard({ product, showShop = true }) {
           loading="lazy"
         />
 
-        {/* Discount Badge */}
-        {product.discountPercent > 0 && (
+        {/* Discount or Fresh Stock Badge */}
+        {product.discountPercent > 0 ? (
           <span className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-bold bg-rose-600 text-white shadow-xs">
             {product.discountPercent}% OFF
+          </span>
+        ) : (
+          <span className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-md text-[9px] sm:text-[10px] font-bold bg-emerald-600 text-white shadow-xs">
+            NEW STOCK
           </span>
         )}
 
@@ -84,9 +88,17 @@ export default function ProductCard({ product, showShop = true }) {
       {/* Content Area */}
       <div className="p-3 sm:p-4 flex-1 flex flex-col justify-between">
         <div>
-          {/* Brand */}
-          <div className="text-[11px] font-semibold text-neutral-400 uppercase tracking-wider line-clamp-1">
-            {product.brand}
+          {/* Brand & Sales Velocity */}
+          <div className="flex items-center justify-between gap-1.5 min-h-[18px]">
+            <span className="text-[11px] font-semibold text-neutral-400 uppercase tracking-wider truncate">
+              {product.brand}
+            </span>
+            {product.salesLastMonth ? (
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-orange-700 bg-orange-50/90 px-1.5 py-0.5 rounded-md border border-orange-200/80 flex-shrink-0 shadow-2xs">
+                <TrendingUp className="w-2.5 h-2.5 text-orange-600" />
+                <span>{product.salesLastMonth}+ sold</span>
+              </span>
+            ) : null}
           </div>
 
           {/* Product Title */}

@@ -64,7 +64,9 @@ create table if not exists public.shops (
   avatar text,
   description text,
   owner_name text,
+  owner_email text,
   phone text,
+  user_id uuid references auth.users(id) on delete set null,
   tags text[] default '{}',
   catalog_categories text[] default '{}',
   created_at timestamptz default now()
@@ -80,6 +82,19 @@ create policy "Allow public read access on shops"
   for select
   to anon, authenticated
   using (true);
+
+create policy "Allow insert on shops"
+  on public.shops
+  for insert
+  to anon, authenticated
+  with check (true);
+
+create policy "Allow update on shops"
+  on public.shops
+  for update
+  to anon, authenticated
+  using (true)
+  with check (true);
 
 -- 4. PRODUCTS TABLE
 create table if not exists public.products (
@@ -112,6 +127,25 @@ alter table public.products enable row level security;
 create policy "Allow public read access on products"
   on public.products
   for select
+  to anon, authenticated
+  using (true);
+
+create policy "Allow insert on products"
+  on public.products
+  for insert
+  to anon, authenticated
+  with check (true);
+
+create policy "Allow update on products"
+  on public.products
+  for update
+  to anon, authenticated
+  using (true)
+  with check (true);
+
+create policy "Allow delete on products"
+  on public.products
+  for delete
   to anon, authenticated
   using (true);
 

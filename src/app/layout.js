@@ -28,12 +28,12 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body className="min-h-screen flex flex-col bg-[#fbfbfb] text-neutral-900 selection:bg-emerald-100 selection:text-emerald-900">
-        <AuthProvider>
-          <LocationProvider>
-            <CartProvider>
-              <FavoritesProvider>
-                <OrdersProvider>
-                  <ToastProvider>
+        <ToastProvider>
+          <AuthProvider>
+            <LocationProvider>
+              <CartProvider>
+                <FavoritesProvider>
+                  <OrdersProvider>
                     <Navbar />
                     <main className="flex-1 pb-16 md:pb-0 w-full max-w-full overflow-x-hidden">{children}</main>
                     <Footer />
@@ -41,12 +41,12 @@ export default function RootLayout({ children }) {
                     <BottomNavigation />
                     <LocationModal />
                     <AuthModal />
-                  </ToastProvider>
-                </OrdersProvider>
-              </FavoritesProvider>
-            </CartProvider>
-          </LocationProvider>
-        </AuthProvider>
+                  </OrdersProvider>
+                </FavoritesProvider>
+              </CartProvider>
+            </LocationProvider>
+          </AuthProvider>
+        </ToastProvider>
       </body>
     </html>
   );

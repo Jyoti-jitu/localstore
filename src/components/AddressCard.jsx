@@ -1,13 +1,14 @@
 "use client";
 
 import React from "react";
-import { MapPin, Home, Briefcase, Users, Check, Trash2 } from "lucide-react";
+import { MapPin, Home, Briefcase, Users, Check, Trash2, Pencil } from "lucide-react";
 
 export default function AddressCard({
   address,
   isSelected = false,
   onSelect,
   onDelete,
+  onEdit,
   selectable = true
 }) {
   const getIcon = (label) => {
@@ -71,6 +72,19 @@ export default function AddressCard({
             >
               {isSelected && <Check className="w-3.5 h-3.5" strokeWidth={3} />}
             </div>
+          )}
+
+          {onEdit && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit(address);
+              }}
+              className="p-1.5 text-neutral-400 hover:text-emerald-600 rounded-lg transition-colors"
+              title="Edit address"
+            >
+              <Pencil className="w-4 h-4" />
+            </button>
           )}
 
           {onDelete && (
